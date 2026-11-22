@@ -1,0 +1,48 @@
+import type { Departure, Place } from './types';
+
+export const BOARD_MINUTES = 90;
+export const BOARD_MAX_ROWS = 25;
+export const HOME_TRAINS = 4;
+export const HOME_HOURS = 3;
+
+/** Combine departures from every source into one time-ordered board. */
+export function buildBoard(
+  deps: Departure[],
+  now: number,
+  minutes = BOARD_MINUTES,
+  maxRows = BOARD_MAX_ROWS,
+): Departure[] {
+  const seen = new Set<string>();
+  return deps
+    .filter((d) => {
+      if (seen.has(d.id)) return false;
+      seen.add(d.id);
+      return d.time >= now - 60_000 && d.time <= now + minutes * 60_000;
+    })
+    .sort((a, b) => a.time - b.time || a.destination.localeCompare(b.destination))
+    .slice(0, maxRows);
+}
+
+export type HomeSection =
+  | { kind: 'hidden' }
+  | { kind: 'none'; homeName: string }
+  | { kind: 'trains'; homeName: string; trains: Departure[] };
+
+/**
+ * What the pinned "To home" section should show.
+ * `homeDeps` are departures already filtered (by National Rail) to ones calling at home.
+ */
+export function homeSection(
+  place: Place,
+  home: { crs: string; name: string },
+  hasKey: boolean,
+  homeDeps: Departure[],
+  now: number,
+): HomeSection {
+  if (!home.crs || place.crs.includes(home.crs)) return { kind: 'hidden' };
+  if (place.crs.length === 0) return { kind: 'none', homeName: home.name };
+  if (!hasKey) return { kind: 'hidden' };
+  const trains = buildBoard(homeDeps, now, HOME_HOURS * 60, HOME_TRAINS);
+  if (trains.length === 0) return { kind: 'none', homeName: home.name };
+  return { kind: 'trains', homeName: home.name, trains };
+}
