@@ -7,8 +7,8 @@ const CACHE_KEY = 'departures:last';
 
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
-  homeCrs: 'MAI',
-  homeName: 'Maidenhead',
+  homeCrs: '',
+  homeName: '',
   apiBase: DEFAULT_API_BASE,
   setupDone: false,
 };

@@ -151,15 +151,15 @@ function HomePicker({
   onChange: (s: Settings) => void;
   label?: string;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(!settings.homeCrs);
   return (
     <div className="field">
       <label>{label}</label>
       {editing ? (
         <StationSearch
           railOnly
-          autoFocus
-          placeholder="Type a National Rail station"
+          autoFocus={!!settings.homeCrs}
+          placeholder="Type your home station"
           onPick={(p) => {
             if (p.kind === 'nr') onChange({ ...settings, homeCrs: p.station.crs, homeName: p.station.name });
             setEditing(false);
@@ -201,9 +201,14 @@ export function Setup({ initial, onDone }: { initial: Settings; onDone: (s: Sett
 
       <HomePicker settings={s} onChange={setS} label="2. Home station" />
 
-      <button className="primary" onClick={() => onDone({ ...s, apiKey: s.apiKey.trim(), setupDone: true })}>
+      <button
+        className="primary"
+        disabled={!s.homeCrs}
+        onClick={() => onDone({ ...s, apiKey: s.apiKey.trim(), setupDone: true })}
+      >
         3. Use my location
       </button>
+      {!s.homeCrs && <p className="hint">Pick your home station first.</p>}
     </main>
   );
 }

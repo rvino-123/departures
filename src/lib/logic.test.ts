@@ -10,7 +10,7 @@ import type { Departure, NrStation, Place, TflStop } from './types';
 const at = (h: number, m: number, day = 21) => new Date(2026, 10, day, h, m).getTime();
 
 const LST: NrStation = { name: 'London Liverpool Street', crs: 'LST', lat: 51.51821, lon: -0.08143 };
-const MAI: NrStation = { name: 'Maidenhead', crs: 'MAI', lat: 51.5186, lon: -0.72246 };
+const RDG: NrStation = { name: 'Reading', crs: 'RDG', lat: 51.45886, lon: -0.97186 };
 const ZFD: NrStation = { name: 'Farringdon', crs: 'ZFD', lat: 51.52007, lon: -0.10466 };
 const lstTube: TflStop = {
   id: '940GZZLULVT', name: 'Liverpool Street Underground Station',
@@ -41,12 +41,12 @@ describe('time', () => {
 
 describe('finding and merging stations', () => {
   it('measures distance sensibly', () => {
-    expect(distanceMetres(LST.lat, LST.lon, MAI.lat, MAI.lon)).toBeGreaterThan(44_000);
-    expect(distanceMetres(LST.lat, LST.lon, MAI.lat, MAI.lon)).toBeLessThan(46_000);
+    expect(distanceMetres(LST.lat, LST.lon, RDG.lat, RDG.lon)).toBeGreaterThan(60_000);
+    expect(distanceMetres(LST.lat, LST.lon, RDG.lat, RDG.lon)).toBeLessThan(64_000);
   });
 
   it('keeps only stations within range, nearest first', () => {
-    const near = nearestNrStations([MAI, ZFD, LST], 51.518, -0.085, 3000, 5);
+    const near = nearestNrStations([RDG, ZFD, LST], 51.518, -0.085, 3000, 5);
     expect(near.map((s) => s.crs)).toEqual(['LST', 'ZFD']);
   });
 
@@ -74,7 +74,7 @@ describe('National Rail parsing', () => {
       { std: '12:10', etd: '12:14', operator: 'Great Western Railway', operatorCode: 'GW',
         serviceID: 'b', destination: [{ locationName: 'Oxford', crs: 'OXF', via: 'via Reading' }] },
       { std: '12:20', etd: 'Cancelled', isCancelled: true, operator: 'Elizabeth line', operatorCode: 'XR',
-        serviceID: 'c', destination: [{ locationName: 'Maidenhead', crs: 'MAI' }] },
+        serviceID: 'c', destination: [{ locationName: 'Reading', crs: 'RDG' }] },
       { std: '12:25', etd: 'Delayed', operatorCode: 'ZZ', serviceID: 'd',
         destination: { location: [{ locationName: 'Slough' }] } },
     ],
@@ -85,7 +85,7 @@ describe('National Rail parsing', () => {
     expect(deps.map((d) => [d.destination, d.status, d.statusText])).toEqual([
       ['Reading', 'on-time', 'On time'],
       ['Oxford', 'late', 'Exp 12:14'],
-      ['Maidenhead', 'cancelled', 'Cancelled'],
+      ['Reading', 'cancelled', 'Cancelled'],
       ['Slough', 'late', 'Delayed'],
     ]);
   });
@@ -156,18 +156,18 @@ describe('the board', () => {
 });
 
 describe('the "To home" section', () => {
-  const home = { crs: 'MAI', name: 'Maidenhead' };
+  const home = { crs: 'RDG', name: 'Reading' };
   const now = at(12, 0);
   const lst: Place = { key: 'nr:LST', name: 'Liverpool Street', lat: 0, lon: 0, crs: ['LST'], tflIds: ['x'] };
   const angelPlace: Place = { key: 'tfl:a', name: 'Angel', lat: 0, lon: 0, crs: [], tflIds: ['a'] };
-  const maiPlace: Place = { key: 'nr:MAI', name: 'Maidenhead', lat: 0, lon: 0, crs: ['MAI'], tflIds: [] };
+  const homePlace: Place = { key: 'nr:RDG', name: 'Reading', lat: 0, lon: 0, crs: ['RDG'], tflIds: [] };
 
   it('is hidden at the home station', () => {
-    expect(homeSection(maiPlace, home, true, [dep({})], now)).toEqual({ kind: 'hidden' });
+    expect(homeSection(homePlace, home, true, [dep({})], now)).toEqual({ kind: 'hidden' });
   });
 
   it('says there are no direct trains from a Tube-only station', () => {
-    expect(homeSection(angelPlace, home, true, [], now)).toEqual({ kind: 'none', homeName: 'Maidenhead' });
+    expect(homeSection(angelPlace, home, true, [], now)).toEqual({ kind: 'none', homeName: 'Reading' });
   });
 
   it('shows the next 4 trains within 3 hours', () => {
