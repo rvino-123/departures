@@ -7,7 +7,13 @@ export const REFRESH_MS = 30_000;
 
 export type Fix = { lat: number; lon: number; accuracy: number } | { error: 'denied' | 'unavailable' };
 
-export function getFix(): Promise<Fix> {
+// Dev-only: ?delay=5 holds locating and each departures fetch back 5 s, and skips saved departures,
+// so the loading states can be seen.
+const DEV_DELAY_MS = import.meta.env.DEV ? Number(new URLSearchParams(window.location.search).get('delay')) * 1000 || 0 : 0;
+const devDelay = () => new Promise((r) => setTimeout(r, DEV_DELAY_MS));
+
+export async function getFix(): Promise<Fix> {
+  if (DEV_DELAY_MS) await devDelay();
   if (import.meta.env.DEV) {
     // Dev-only: ?at=51.5178,-0.0817 fakes a GPS fix for testing in a desktop browser.
     const at = new URLSearchParams(window.location.search).get('at');
@@ -76,6 +82,7 @@ export function usePlaceData(place: Place | undefined, settings: Settings) {
     if (!place) return;
     const id = ++requestId.current;
     setState((s) => ({ ...s, loading: true }));
+    if (DEV_DELAY_MS) await devDelay();
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 12_000);
     try {
@@ -95,7 +102,7 @@ export function usePlaceData(place: Place | undefined, settings: Settings) {
   // New place: show what we last saw there straight away, then fetch.
   useEffect(() => {
     if (!place) return;
-    setState({ data: snapshot.data[place.key], loading: true, offline: false });
+    setState({ data: DEV_DELAY_MS ? undefined : snapshot.data[place.key], loading: true, offline: false });
     refresh();
     const t = setInterval(() => document.visibilityState === 'visible' && refresh(), REFRESH_MS);
     return () => clearInterval(t);

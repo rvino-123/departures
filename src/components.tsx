@@ -36,6 +36,15 @@ export function Row({ d, now }: { d: Departure; now: number }) {
   );
 }
 
+export function Loader({ message }: { message: string }) {
+  return (
+    <div className="loader" role="status">
+      <div className="loader-ring" aria-hidden="true" />
+      <p>{message}</p>
+    </div>
+  );
+}
+
 export function HomeCard({ section, now }: { section: HomeSection; now: number }) {
   if (section.kind === 'hidden') return null;
   if (section.kind === 'none') {

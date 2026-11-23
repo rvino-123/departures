@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HomeCard, Row, SettingsSheet, Setup, StationSearch, type SearchPick } from './components';
+import { HomeCard, Loader, Row, SettingsSheet, Setup, StationSearch, type SearchPick } from './components';
 import { getFix, useGestures, useNow, useOnVisible, usePlaceData, useTheme } from './hooks';
 import { buildBoard, homeSection } from './lib/board';
 import { decideLocation, REASON_TEXT, type FallbackReason } from './lib/locate';
@@ -195,7 +195,8 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
             )}
           </section>
         )}
-        {!showData && place && !offline && <p className="empty">Loading departures…</p>}
+        {view.kind === 'locating' && <Loader message="Finding stations near you…" />}
+        {!showData && place && !offline && <Loader message="Checking train times…" />}
       </div>
 
       <footer>
