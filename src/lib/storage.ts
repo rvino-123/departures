@@ -1,4 +1,5 @@
 import { DEFAULT_API_BASE, OLD_API_BASES } from './nr';
+import { findNr } from './stations';
 import type { Place, Settings } from './types';
 import type { PlaceData } from './load';
 
@@ -35,7 +36,19 @@ export function loadSettings(): Settings {
   const s = { ...DEFAULT_SETTINGS, ...read<Partial<Settings>>(SETTINGS_KEY) };
   // Earlier versions saved an older default address; move those to the current one.
   if (!s.apiBase || OLD_API_BASES.includes(s.apiBase.replace(/\/$/, ''))) s.apiBase = DEFAULT_API_BASE;
+  if (import.meta.env.DEV) fillFromEnv(s);
   return s;
+}
+
+/** Dev-only: fill empty settings from .env.local, and skip setup once both are known. */
+function fillFromEnv(s: Settings) {
+  if (!s.apiKey) s.apiKey = import.meta.env.VITE_DEV_NR_API_KEY?.trim() ?? '';
+  const home = !s.homeCrs && findNr(import.meta.env.VITE_DEV_HOME_CRS?.trim().toUpperCase() ?? '');
+  if (home) {
+    s.homeCrs = home.crs;
+    s.homeName = home.name;
+  }
+  if (s.apiKey && s.homeCrs) s.setupDone = true;
 }
 
 export function saveSettings(s: Settings) {
