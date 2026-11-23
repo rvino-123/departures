@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AllSourcesFailed, loadPlace, type PlaceData } from './lib/load';
-import { loadSnapshot, saveSnapshot, type Snapshot } from './lib/storage';
+import { loadSnapshot, loadTheme, saveSnapshot, saveTheme, type Snapshot } from './lib/storage';
 import type { Place, Settings } from './lib/types';
 
 export const REFRESH_MS = 30_000;
@@ -103,6 +103,45 @@ export function usePlaceData(place: Place | undefined, settings: Settings) {
 
   useOnVisible(refresh);
   return { ...state, refresh };
+}
+
+function systemPrefersDark() {
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+}
+
+function applyTheme(theme: 'light' | 'dark' | undefined) {
+  if (theme) document.documentElement.dataset.theme = theme;
+  else delete document.documentElement.dataset.theme;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+}
+
+/** The effective light/dark theme (manual override, or the OS setting), and a toggle for it. */
+export function useTheme(): ['light' | 'dark', () => void] {
+  const [override, setOverride] = useState(loadTheme);
+  const [systemDark, setSystemDark] = useState(systemPrefersDark);
+  const effective = override ?? (systemDark ? 'dark' : 'light');
+
+  useEffect(() => {
+    applyTheme(override);
+  }, [override, systemDark]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => setSystemDark(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const toggle = useCallback(() => {
+    setOverride((current) => {
+      const next = (current ?? (systemPrefersDark() ? 'dark' : 'light')) === 'dark' ? 'light' : 'dark';
+      saveTheme(next);
+      return next;
+    });
+  }, []);
+
+  return [effective, toggle];
 }
 
 /** Pull down from the top to refresh; swipe sideways to change tabs. */

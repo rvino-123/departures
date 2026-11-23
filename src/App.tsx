@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HomeCard, Row, SettingsSheet, Setup, StationSearch, type SearchPick } from './components';
-import { getFix, useGestures, useNow, useOnVisible, usePlaceData } from './hooks';
+import { getFix, useGestures, useNow, useOnVisible, usePlaceData, useTheme } from './hooks';
 import { buildBoard, homeSection } from './lib/board';
 import { decideLocation, REASON_TEXT, type FallbackReason } from './lib/locate';
 import { findNr, placeForNr, placeForTfl, placesNear } from './lib/stations';
@@ -39,6 +39,7 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
   const [showSearch, setShowSearch] = useState(false);
   const lastLocate = useRef(0);
   const now = useNow();
+  const [theme, toggleTheme] = useTheme();
 
   const locate = useCallback(async () => {
     lastLocate.current = Date.now();
@@ -123,6 +124,9 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
           </button>
           <button aria-label="Refresh" onClick={refresh}>
             ↻
+          </button>
+          <button aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggleTheme}>
+            {theme === 'dark' ? '☀' : '☾'}
           </button>
           <button aria-label="Settings" onClick={() => setShowSettings(true)}>
             ⚙

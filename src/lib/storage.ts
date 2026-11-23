@@ -4,6 +4,7 @@ import type { PlaceData } from './load';
 
 const SETTINGS_KEY = 'departures:settings';
 const CACHE_KEY = 'departures:last';
+const THEME_KEY = 'departures:theme';
 
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
@@ -49,4 +50,13 @@ export function loadSnapshot(): Snapshot | undefined {
 
 export function saveSnapshot(s: Snapshot) {
   write(CACHE_KEY, s);
+}
+
+/** The user's manual theme choice, or undefined to follow the OS setting. */
+export function loadTheme(): 'light' | 'dark' | undefined {
+  return read<'light' | 'dark'>(THEME_KEY);
+}
+
+export function saveTheme(theme: 'light' | 'dark') {
+  write(THEME_KEY, theme);
 }
