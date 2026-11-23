@@ -4,6 +4,8 @@ export const BOARD_MINUTES = 90;
 export const BOARD_MAX_ROWS = 25;
 export const HOME_TRAINS = 4;
 export const HOME_HOURS = 3;
+/** How long a delayed train with no estimate stays listed after it was due, so old saved boards don't keep it forever. */
+export const DELAYED_KEEP_MINUTES = 120;
 
 /** Combine departures from every source into one time-ordered board. */
 export function buildBoard(
@@ -17,7 +19,9 @@ export function buildBoard(
     .filter((d) => {
       if (seen.has(d.id)) return false;
       seen.add(d.id);
-      return d.time >= now - 60_000 && d.time <= now + minutes * 60_000;
+      // A delayed train with no estimate hasn't left yet, even though it was due a while ago.
+      const earliest = now - (d.awaitingEstimate ? DELAYED_KEEP_MINUTES : 1) * 60_000;
+      return d.time >= earliest && d.time <= now + minutes * 60_000;
     })
     .sort((a, b) => a.time - b.time || a.destination.localeCompare(b.destination))
     .slice(0, maxRows);

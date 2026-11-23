@@ -89,6 +89,7 @@ describe('National Rail parsing', () => {
       ['Reading', 'cancelled', 'Cancelled'],
       ['Slough', 'late', 'Delayed'],
     ]);
+    expect(deps.map((d) => d.awaitingEstimate)).toEqual([false, false, false, true]);
   });
 
   it('uses the expected time for late trains and keeps platform, via and colour', () => {
@@ -133,6 +134,29 @@ describe('TfL parsing', () => {
     const [d] = parseArrivals([{ lineId: 'northern', modeName: 'tube', towards: 'Edgware', expectedArrival: '2026-11-21T15:38:54Z' }]);
     expect(d.destination).toBe('Edgware');
   });
+
+  it('drops trains that terminate here', () => {
+    const p = {
+      id: '1', vehicleId: '201', lineId: 'victoria', modeName: 'tube', naptanId: '940GZZLUBXN',
+      destinationName: 'Brixton Underground Station', expectedArrival: '2026-11-21T15:38:54Z',
+    };
+    const deps = parseArrivals([
+      { ...p, destinationNaptanId: '940GZZLUBXN' },
+      { ...p, id: '2', vehicleId: '202', destinationName: 'Walthamstow Central Underground Station', destinationNaptanId: '940GZZLUWWL' },
+    ]);
+    expect(deps.map((d) => d.destination)).toEqual(['Walthamstow Central']);
+  });
+
+  it('keeps separate DLR trains that have no vehicle id', () => {
+    const p = {
+      // Real DLR data: no vehicleId, and the same id on every prediction at the stop.
+      id: '-846781707', vehicleId: '', lineId: 'dlr', modeName: 'dlr', platformName: 'Platform 1',
+      destinationName: 'Woolwich Arsenal DLR Station', destinationNaptanId: '940GZZDLWLA',
+      expectedArrival: '2026-11-21T15:38:54Z',
+    };
+    const deps = parseArrivals([p, { ...p, expectedArrival: '2026-11-21T15:48:54Z' }, p]);
+    expect(deps).toHaveLength(2);
+  });
 });
 
 describe('the board', () => {
@@ -148,6 +172,18 @@ describe('the board', () => {
       now,
     );
     expect(board.map((d) => d.id)).toEqual(['rail', 'tube']);
+  });
+
+  it('keeps a delayed train with no estimate after it was due', () => {
+    const board = buildBoard(
+      [
+        dep({ id: 'delayed', time: at(11, 50), awaitingEstimate: true }),
+        dep({ id: 'gone', time: at(11, 50) }),
+        dep({ id: 'stale', time: at(9, 50), awaitingEstimate: true }),
+      ],
+      now,
+    );
+    expect(board.map((d) => d.id)).toEqual(['delayed']);
   });
 
   it('caps the board at 25 rows and removes duplicates', () => {

@@ -17,7 +17,7 @@ export function Row({ d, now }: { d: Departure; now: number }) {
     <li className={`row${cancelled ? ' cancelled' : ''}`}>
       <div className="row-time">
         <span className="clock">{formatClock(cancelled && d.scheduled ? d.scheduled : d.time)}</span>
-        {!cancelled && <span className="countdown">{formatCountdown(d.time, now)}</span>}
+        {!cancelled && !d.awaitingEstimate && <span className="countdown">{formatCountdown(d.time, now)}</span>}
       </div>
       <div className="row-main">
         <div className="dest">{d.destination}</div>

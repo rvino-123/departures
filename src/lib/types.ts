@@ -41,6 +41,8 @@ export interface Departure {
   scheduled?: number;
   status: Status;
   statusText: string;
+  /** Delayed with no expected time yet; stays listed until National Rail drops it. */
+  awaitingEstimate?: boolean;
   destination: string;
   /** extra context: "via Clapham Jn" for rail, "Eastbound" for Tube */
   detail?: string;

@@ -48,6 +48,7 @@ function toDeparture(s: NrService, ref: number, isBus: boolean): Departure | und
   let status: Departure['status'] = 'on-time';
   let statusText = 'On time';
   let time = scheduled;
+  let awaitingEstimate = false;
   if (cancelled) {
     status = 'cancelled';
     statusText = 'Cancelled';
@@ -58,6 +59,7 @@ function toDeparture(s: NrService, ref: number, isBus: boolean): Departure | und
   } else if (/delay/i.test(etd)) {
     status = 'late';
     statusText = 'Delayed';
+    awaitingEstimate = true;
   } else if (etd && !/on time/i.test(etd)) {
     statusText = etd;
   }
@@ -74,6 +76,7 @@ function toDeparture(s: NrService, ref: number, isBus: boolean): Departure | und
     scheduled,
     status,
     statusText,
+    awaitingEstimate,
     destination,
     detail: via,
     line: isBus ? 'Replacement bus' : (s.operator ?? code) || 'Rail',

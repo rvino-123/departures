@@ -51,6 +51,8 @@ interface TflPrediction {
   towards?: string;
   expectedArrival?: string;
   modeName?: string;
+  naptanId?: string;
+  destinationNaptanId?: string;
 }
 
 function splitPlatform(name?: string): { platform?: string; direction?: string } {
@@ -70,7 +72,12 @@ export function parseArrivals(body: TflPrediction[]): Departure[] {
     if (!p.modeName || !MODES.includes(p.modeName)) continue;
     const time = p.expectedArrival ? Date.parse(p.expectedArrival) : NaN;
     if (Number.isNaN(time)) continue;
-    const id = `tfl:${p.lineId}:${p.vehicleId ?? p.id}:${p.platformName}`;
+    // Trains terminating here are arrivals, not departures.
+    if (p.destinationNaptanId && p.destinationNaptanId === p.naptanId) continue;
+    // DLR sends an empty vehicleId and one shared id for every train at the stop,
+    // so tell its trains apart by destination and time instead.
+    const train = p.vehicleId || `${p.destinationNaptanId}@${p.expectedArrival}`;
+    const id = `tfl:${p.lineId}:${train}:${p.platformName}`;
     if (seen.has(id)) continue;
     seen.add(id);
     const { platform, direction } = splitPlatform(p.platformName);
