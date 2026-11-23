@@ -3,7 +3,10 @@ import { clockToEpoch } from './time';
 import type { Departure } from './types';
 
 export const DEFAULT_API_BASE =
-  'https://api1.raildata.org.uk/1010-live-departure-board-dep/LDBWS/api/20220120';
+  'https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120';
+
+/** Addresses earlier versions saved as the default; upgraded to DEFAULT_API_BASE on load. */
+export const OLD_API_BASES = ['https://api1.raildata.org.uk/1010-live-departure-board-dep/LDBWS/api/20220120'];
 
 /* Shape of the Rail Data Marketplace "Live Departure Board" JSON (LDBWS). Kept loose on purpose. */
 interface NrLocation {

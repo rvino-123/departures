@@ -1,4 +1,4 @@
-import { DEFAULT_API_BASE } from './nr';
+import { DEFAULT_API_BASE, OLD_API_BASES } from './nr';
 import type { Place, Settings } from './types';
 import type { PlaceData } from './load';
 
@@ -32,7 +32,10 @@ function write(key: string, value: unknown) {
 }
 
 export function loadSettings(): Settings {
-  return { ...DEFAULT_SETTINGS, ...read<Partial<Settings>>(SETTINGS_KEY) };
+  const s = { ...DEFAULT_SETTINGS, ...read<Partial<Settings>>(SETTINGS_KEY) };
+  // Earlier versions saved an older default address; move those to the current one.
+  if (!s.apiBase || OLD_API_BASES.includes(s.apiBase.replace(/\/$/, ''))) s.apiBase = DEFAULT_API_BASE;
+  return s;
 }
 
 export function saveSettings(s: Settings) {
