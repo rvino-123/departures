@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildBoard, homeSection } from './board';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
 import { decideLocation } from './locate';
-import { parseNrBoard } from './nr';
+import { fetchNrBoard, forgetRejectedKey, NrKeyError, parseNrBoard } from './nr';
 import { parseArrivals, parseNearby } from './tfl';
 import { clockToEpoch, formatCountdown } from './time';
 import type { Departure, NrStation, Place, TflStop } from './types';
@@ -243,5 +243,48 @@ describe('usage', () => {
     expect(() => countRequest('tfl-arrivals', now)).not.toThrow();
     expect(loadUsage(now).today['tfl-arrivals']).toBe(1);
     vi.unstubAllGlobals();
+  });
+});
+
+describe('a rejected National Rail key', () => {
+  afterEach(() => {
+    forgetRejectedKey();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('stops sending requests with it until settings are saved again', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const q = { crs: 'LST', apiKey: 'bad', apiBase: 'https://example.test' };
+
+    await expect(fetchNrBoard(q)).rejects.toBeInstanceOf(NrKeyError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await expect(fetchNrBoard(q)).rejects.toBeInstanceOf(NrKeyError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await expect(fetchNrBoard({ ...q, apiKey: 'other' })).rejects.toBeInstanceOf(NrKeyError);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    forgetRejectedKey();
+    await expect(fetchNrBoard({ ...q, apiKey: 'other' })).rejects.toBeInstanceOf(NrKeyError);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('tries the key again after 5 minutes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(at(12, 0));
+    const fetchMock = vi.fn(async () => new Response(null, { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const q = { crs: 'LST', apiKey: 'bad', apiBase: 'https://example.test' };
+
+    await expect(fetchNrBoard(q)).rejects.toBeInstanceOf(NrKeyError);
+    vi.setSystemTime(at(12, 4));
+    await expect(fetchNrBoard(q)).rejects.toBeInstanceOf(NrKeyError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(at(12, 5));
+    await expect(fetchNrBoard(q)).rejects.toBeInstanceOf(NrKeyError);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

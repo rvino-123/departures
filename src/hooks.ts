@@ -77,8 +77,15 @@ export interface PlaceState {
 export function usePlaceData(place: Place | undefined, settings: Settings) {
   const [state, setState] = useState<PlaceState>({ loading: false, offline: false });
   const requestId = useRef(0);
+  // Re-locating builds new Place objects for the same station, so track the place by what it
+  // contains, not identity. Its platforms can change under the same key (e.g. TfL was slow last time).
+  const placeRef = useRef(place);
+  placeRef.current = place;
+  const placeKey = place?.key;
+  const placeSig = place && [place.key, ...place.crs, ...place.tflIds].join('|');
 
   const refresh = useCallback(async () => {
+    const place = placeRef.current;
     if (!place) return;
     const id = ++requestId.current;
     setState((s) => ({ ...s, loading: true }));
@@ -97,16 +104,16 @@ export function usePlaceData(place: Place | undefined, settings: Settings) {
     } finally {
       clearTimeout(timeout);
     }
-  }, [place, settings]);
+  }, [settings]);
 
   // New place: show what we last saw there straight away, then fetch.
   useEffect(() => {
-    if (!place) return;
-    setState({ data: DEV_DELAY_MS ? undefined : snapshot.data[place.key], loading: true, offline: false });
+    if (!placeSig || !placeKey) return;
+    setState({ data: DEV_DELAY_MS ? undefined : snapshot.data[placeKey], loading: true, offline: false });
     refresh();
     const t = setInterval(() => document.visibilityState === 'visible' && refresh(), REFRESH_MS);
     return () => clearInterval(t);
-  }, [place, refresh]);
+  }, [placeSig, placeKey, refresh]);
 
   useOnVisible(refresh);
   return { ...state, refresh };

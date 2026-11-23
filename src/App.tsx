@@ -4,6 +4,7 @@ import { getFix, useGestures, useNow, useOnVisible, usePlaceData, useTheme } fro
 import { buildBoard, homeSection } from './lib/board';
 import { decideLocation, REASON_TEXT, type FallbackReason } from './lib/locate';
 import { findNr, placeForNr, placeForTfl, placesNear } from './lib/stations';
+import { forgetRejectedKey } from './lib/nr';
 import { loadSettings, saveSettings } from './lib/storage';
 import { formatClock } from './lib/time';
 import type { Place, Settings } from './lib/types';
@@ -20,6 +21,7 @@ const RELOCATE_AFTER_MS = 60_000;
 export default function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const update = (s: Settings) => {
+    forgetRejectedKey();
     saveSettings(s);
     setSettings(s);
   };
@@ -38,13 +40,20 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const lastLocate = useRef(0);
+  // Bumped by every locate and every pick, so a slow one can't overwrite a newer choice.
+  const nav = useRef(0);
+  const viewRef = useRef(view);
+  viewRef.current = view;
   const now = useNow();
   const [theme, toggleTheme] = useTheme();
 
   const locate = useCallback(async () => {
+    const id = ++nav.current;
     lastLocate.current = Date.now();
     const fix = await getFix();
+    if (id !== nav.current) return;
     const places = 'error' in fix ? [] : await placesNear(fix.lat, fix.lon).catch(() => []);
+    if (id !== nav.current) return;
     const outcome = decideLocation(fix, places);
     if (outcome.kind === 'nearby') {
       setView((v) => {
@@ -56,12 +65,14 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
     }
     const home = findNr(settings.homeCrs);
     const place = home ? await placeForNr(home) : undefined;
+    if (id !== nav.current) return;
     setView({ kind: 'fallback', reason: outcome.reason, place });
     setTab(0);
   }, [settings.homeCrs]);
 
+  // On start, and when the home station changes – but leave a station the user picked alone.
   useEffect(() => {
-    locate();
+    if (viewRef.current.kind !== 'manual') locate();
   }, [locate]);
 
   useOnVisible(() => {
@@ -89,7 +100,9 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
 
   const pick = async (p: SearchPick) => {
     setShowSearch(false);
+    const id = ++nav.current;
     const chosen = p.kind === 'nr' ? await placeForNr(p.station) : placeForTfl(p.stop);
+    if (id !== nav.current) return;
     setTab(0);
     setView({ kind: 'manual', place: chosen });
   };

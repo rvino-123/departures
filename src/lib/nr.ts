@@ -113,7 +113,19 @@ export interface NrQuery {
 // We prefer the plain one and fall back if this key's product doesn't include it.
 let operation: 'GetDepartureBoard' | 'GetDepBoardWithDetails' = 'GetDepartureBoard';
 
+// Once National Rail rejects a key, stop spending requests on it for a while,
+// or until the user saves settings again.
+const RETRY_REJECTED_MS = 5 * 60_000;
+let rejected: { key: string; at: number } | undefined;
+
+export function forgetRejectedKey() {
+  rejected = undefined;
+}
+
 export async function fetchNrBoard(q: NrQuery): Promise<Departure[]> {
+  if (rejected?.key === q.apiKey && Date.now() - rejected.at < RETRY_REJECTED_MS) {
+    throw new NrKeyError('National Rail key was rejected');
+  }
   const params = new URLSearchParams();
   params.set('numRows', String(q.numRows ?? 40));
   if (q.timeOffset !== undefined) params.set('timeOffset', String(q.timeOffset));
@@ -139,7 +151,10 @@ export async function fetchNrBoard(q: NrQuery): Promise<Departure[]> {
     }
     res = retry;
   }
-  if (res.status === 401 || res.status === 403) throw new NrKeyError('National Rail key was rejected');
+  if (res.status === 401 || res.status === 403) {
+    rejected = { key: q.apiKey, at: Date.now() };
+    throw new NrKeyError('National Rail key was rejected');
+  }
   if (!res.ok) throw new Error(`National Rail error ${res.status}`);
   return parseNrBoard((await res.json()) as NrBoardResponse, Date.now());
 }
