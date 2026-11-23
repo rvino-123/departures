@@ -1,6 +1,7 @@
 import { DEFAULT_COLOR, OPERATOR_COLORS } from './colors';
 import { clockToEpoch } from './time';
 import type { Departure } from './types';
+import { countRequest } from './usage';
 
 export const DEFAULT_API_BASE =
   'https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS/api/20220120';
@@ -125,6 +126,7 @@ export async function fetchNrBoard(q: NrQuery): Promise<Departure[]> {
   const call = async (op: typeof operation) => {
     if (op === 'GetDepBoardWithDetails') params.set('numRows', String(Math.min(q.numRows ?? 10, 10)));
     const url = `${q.apiBase.replace(/\/$/, '')}/${op}/${encodeURIComponent(q.crs)}?${params}`;
+    countRequest(q.filterCrs ? 'nr-home' : 'nr-board');
     return fetch(url, { headers: { 'x-apikey': q.apiKey }, signal: q.signal });
   };
 

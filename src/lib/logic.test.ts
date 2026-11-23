@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildBoard, homeSection } from './board';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
 import { decideLocation } from './locate';
@@ -6,6 +6,7 @@ import { parseNrBoard } from './nr';
 import { parseArrivals, parseNearby } from './tfl';
 import { clockToEpoch, formatCountdown } from './time';
 import type { Departure, NrStation, Place, TflStop } from './types';
+import { countRequest, dayKey, lastMinute, loadUsage, prune, summarise, type UsageDays } from './usage';
 
 const at = (h: number, m: number, day = 21) => new Date(2026, 10, day, h, m).getTime();
 
@@ -198,5 +199,49 @@ describe('deciding where you are', () => {
     expect(decideLocation({ error: 'denied' }, [])).toEqual({ kind: 'fallback', reason: 'denied' });
     expect(decideLocation({ accuracy: 5000 }, [place(100)])).toEqual({ kind: 'fallback', reason: 'vague' });
     expect(decideLocation({ accuracy: 20 }, [place(3500)])).toEqual({ kind: 'fallback', reason: 'far' });
+  });
+});
+
+describe('usage', () => {
+  const now = at(9, 0, 23);
+  const days: UsageDays = {
+    [dayKey(now)]: { 'nr-board': 4, 'tfl-arrivals': 2 },
+    [dayKey(at(9, 0, 17))]: { 'nr-board': 1 },
+    [dayKey(at(9, 0, 16))]: { 'nr-home': 5 },
+    '2026-09-01': { 'nr-board': 100 },
+  };
+
+  it('totals today, the last 7 days and the last 30 days', () => {
+    const s = summarise(days, now);
+    expect(s.today['nr-board']).toBe(4);
+    expect(s.week['nr-board']).toBe(5);
+    expect(s.week['nr-home']).toBe(0);
+    expect(s.month['nr-home']).toBe(5);
+    expect(s.month['nr-board']).toBe(5);
+    expect(s.today['tfl-search']).toBe(0);
+  });
+
+  it('drops days older than 30', () => {
+    expect(Object.keys(prune(days, now))).not.toContain('2026-09-01');
+    expect(Object.keys(prune(days, now))).toHaveLength(3);
+  });
+
+  it('counts requests per day and in the last minute', () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => store.set(k, v),
+    });
+    countRequest('nr-board', now);
+    countRequest('nr-board', now + 1_000);
+    countRequest('tfl-search', now + 30_000);
+    expect(loadUsage(now).today).toMatchObject({ 'nr-board': 2, 'tfl-search': 1 });
+    expect(lastMinute(now + 30_000)).toBe(3);
+    expect(lastMinute(now + 61_000)).toBe(1);
+
+    store.set('departures:usage', 'null');
+    expect(() => countRequest('tfl-arrivals', now)).not.toThrow();
+    expect(loadUsage(now).today['tfl-arrivals']).toBe(1);
+    vi.unstubAllGlobals();
   });
 });

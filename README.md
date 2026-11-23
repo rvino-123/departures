@@ -8,6 +8,7 @@ A personal phone web app (PWA): open it and it shows live departures from the st
 - **National Rail:** Rail Data Marketplace "Live Departure Board", called from the phone with your key (`x-apikey`). The key is stored only in the browser's localStorage.
 - **Tube & DLR:** TfL Unified API arrivals (no key needed).
 - **To home:** a second National Rail request filtered to trains calling at your home station (`filterCrs` + `filterType=to`), looking up to 3 hours ahead.
+- **Usage:** Settings → Usage shows how many API requests this phone has made (last minute, today, 7 and 30 days), split by National Rail and TfL. Counts stay on the device for 30 days.
 - **Fallbacks:** if location is denied, too vague (over 1 km), or more than 3 km from a station, it shows your home station's board plus a search box. With no signal, it shows the last board it loaded, marked "Offline".
 
 ## Get a National Rail key

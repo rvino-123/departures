@@ -7,6 +7,8 @@ import { searchTfl } from './lib/tfl';
 import { cleanTflName } from './lib/geo';
 import { formatClock, formatCountdown } from './lib/time';
 import type { Departure, NrStation, Settings, TflStop } from './lib/types';
+import { lastMinute, loadUsage, type Counts, type RequestKind } from './lib/usage';
+import { useNow } from './hooks';
 
 export function Row({ d, now }: { d: Departure; now: number }) {
   const cancelled = d.status === 'cancelled';
@@ -213,6 +215,48 @@ export function Setup({ initial, onDone }: { initial: Settings; onDone: (s: Sett
   );
 }
 
+const USAGE_ROWS: { label: string; kinds: RequestKind[]; total?: boolean }[] = [
+  { label: 'National Rail', kinds: ['nr-board', 'nr-home'], total: true },
+  { label: 'Station boards', kinds: ['nr-board'] },
+  { label: 'Trains home', kinds: ['nr-home'] },
+  { label: 'TfL', kinds: ['tfl-arrivals', 'tfl-nearby', 'tfl-search'], total: true },
+  { label: 'Arrivals', kinds: ['tfl-arrivals'] },
+  { label: 'Nearby stops', kinds: ['tfl-nearby'] },
+  { label: 'Station search', kinds: ['tfl-search'] },
+];
+
+function UsageStats() {
+  const now = useNow(5_000);
+  const usage = loadUsage(now);
+  const sum = (c: Counts, kinds: RequestKind[]) => kinds.reduce((n, k) => n + c[k], 0);
+  return (
+    <details className="help">
+      <summary>Usage · {lastMinute(now)} requests in the last minute</summary>
+      <table className="usage">
+        <thead>
+          <tr>
+            <th />
+            <th>Today</th>
+            <th>7 days</th>
+            <th>30 days</th>
+          </tr>
+        </thead>
+        <tbody>
+          {USAGE_ROWS.map((r) => (
+            <tr key={r.label} className={r.total ? 'total' : undefined}>
+              <th>{r.label}</th>
+              <td>{sum(usage.today, r.kinds)}</td>
+              <td>{sum(usage.week, r.kinds)}</td>
+              <td>{sum(usage.month, r.kinds)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="hint">Every request this phone has sent, including failed ones.</p>
+    </details>
+  );
+}
+
 export function SettingsSheet({
   settings,
   onSave,
@@ -249,6 +293,7 @@ export function SettingsSheet({
             Reset to default
           </button>
         </details>
+        <UsageStats />
         <div className="sheet-actions">
           <button onClick={onClose}>Cancel</button>
           <button

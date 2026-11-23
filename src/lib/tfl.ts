@@ -1,6 +1,7 @@
 import { DEFAULT_COLOR, TUBE_COLORS } from './colors';
 import { cleanTflName } from './geo';
 import type { Departure, TflStop } from './types';
+import { countRequest } from './usage';
 
 const BASE = 'https://api.tfl.gov.uk';
 const MODES = ['tube', 'dlr'];
@@ -34,6 +35,7 @@ export async function fetchNearbyTfl(
   signal?: AbortSignal,
 ): Promise<TflStop[]> {
   const url = `${BASE}/StopPoint?lat=${lat}&lon=${lon}&radius=${Math.round(radius)}&stopTypes=NaptanMetroStation&modes=${MODES.join(',')}`;
+  countRequest('tfl-nearby');
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`TfL error ${res.status}`);
   return parseNearby(await res.json());
@@ -93,6 +95,7 @@ export function parseArrivals(body: TflPrediction[]): Departure[] {
 }
 
 export async function fetchTflArrivals(naptanId: string, signal?: AbortSignal): Promise<Departure[]> {
+  countRequest('tfl-arrivals');
   const res = await fetch(`${BASE}/StopPoint/${encodeURIComponent(naptanId)}/Arrivals`, { signal });
   if (!res.ok) throw new Error(`TfL error ${res.status}`);
   return parseArrivals(await res.json());
@@ -100,6 +103,7 @@ export async function fetchTflArrivals(naptanId: string, signal?: AbortSignal): 
 
 export async function searchTfl(query: string, signal?: AbortSignal): Promise<TflStop[]> {
   const url = `${BASE}/StopPoint/Search/${encodeURIComponent(query)}?modes=${MODES.join(',')}&maxResults=8`;
+  countRequest('tfl-search');
   const res = await fetch(url, { signal });
   if (!res.ok) return [];
   const body = (await res.json()) as {
