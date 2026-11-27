@@ -1,35 +1,74 @@
+/* Hanken Grotesk, self-hosted (variable: one file per subset covers every weight). OFL. */
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('./assets/fonts/hanken-grotesk-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
+ * Station sign plates: flat white plates on a grey wall, ink type, and one rail red
+ * that only ever marks what's yours (the selected station, the trains home).
+ */
 :root {
-  --bg: #f6f7f9;
-  --card: #ffffff;
-  --fg: #111418;
-  --muted: #5f6873;
-  --line: #e2e5ea;
-  --accent: #1d5bd6;
-  --on-accent: #ffffff;
-  --ok: #157a3c;
-  --warn: #b25e00;
-  --warn-bg: #fff4e0;
-  --bad: #c62828;
-  --bad-bg: #fdecec;
+  --bg: #e9ebee; /* the wall; also drives the theme-color meta */
+  --plate: #ffffff;
+  --fg: #101418;
+  --muted: #5d646d;
+  --line: #e0e3e7;
+  --edge: #8a919a; /* input and button outlines (3:1 on wall and plate) */
+  --press: #eef0f3;
+  --red: #c8102e;
+  --on-ink: #ffffff;
+  --ok: #12763a;
+  --warn: #9e4d00;
+  --warn-bg: #fff2df;
+  --bad: #c3141f;
+  --bad-bg: #fdeceb;
+
+  --t-xs: 12px;
+  --t-sm: 14px;
+  --t-md: 16px;
+  --t-lg: 18px;
+  --t-xl: 28px;
+
   color-scheme: light dark;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-feature-settings: 'tnum' 1;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0e1013;
-    --card: #181b20;
-    --fg: #f2f4f7;
-    --muted: #9aa3ad;
-    --line: #2a2f36;
-    --accent: #5b8cff;
-    --on-accent: #0b0d10;
+    --bg: #0b0d10;
+    --plate: #171a1f;
+    --fg: #f1f3f5;
+    --muted: #9aa2ab;
+    --line: #272b31;
+    --edge: #5c636c;
+    --press: #22262c;
+    --red: #f04a5f;
+    --on-ink: #0b0d10;
     --ok: #4cc27a;
     --warn: #ffb547;
-    --warn-bg: #2d2210;
+    --warn-bg: #2b2111;
     --bad: #ff6b6b;
-    --bad-bg: #2e1414;
+    --bad-bg: #2e1515;
   }
 }
 
@@ -39,18 +78,20 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0e1013;
-  --card: #181b20;
-  --fg: #f2f4f7;
-  --muted: #9aa3ad;
-  --line: #2a2f36;
-  --accent: #5b8cff;
-  --on-accent: #0b0d10;
+  --bg: #0b0d10;
+  --plate: #171a1f;
+  --fg: #f1f3f5;
+  --muted: #9aa2ab;
+  --line: #272b31;
+  --edge: #5c636c;
+  --press: #22262c;
+  --red: #f04a5f;
+  --on-ink: #0b0d10;
   --ok: #4cc27a;
   --warn: #ffb547;
-  --warn-bg: #2d2210;
+  --warn-bg: #2b2111;
   --bad: #ff6b6b;
-  --bad-bg: #2e1414;
+  --bad-bg: #2e1515;
 }
 
 *,
@@ -67,8 +108,22 @@ body {
   overscroll-behavior-y: contain;
 }
 
+::selection {
+  background: color-mix(in srgb, var(--fg) 18%, transparent);
+}
+
 button {
   font: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+input {
+  font: inherit;
+  caret-color: var(--fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
 }

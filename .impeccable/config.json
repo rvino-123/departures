@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/App.css"
+        ],
+        "createdAt": "2026-11-27T22:01:50.445Z",
+        "reason": "agent decided: .tabs button sets border-radius: 0; the 4px top bar is the selected-tab indicator on a square plate"
+      }
+    ]
+  }
+}
