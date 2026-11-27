@@ -23,8 +23,18 @@ export function buildBoard(
       const earliest = now - (d.awaitingEstimate ? DELAYED_KEEP_MINUTES : 1) * 60_000;
       return d.time >= earliest && d.time <= now + minutes * 60_000;
     })
-    .sort((a, b) => a.time - b.time || a.destination.localeCompare(b.destination))
+    // Listed in timetable order, as on a station board, so the time column always reads in order.
+    .sort((a, b) => boardTime(a) - boardTime(b) || a.destination.localeCompare(b.destination))
     .slice(0, maxRows);
+}
+
+/**
+ * The time a row is listed under. Late and cancelled trains keep their timetabled time, which is how
+ * people know their train ("the 08:30"); the expected time goes in the status instead.
+ */
+export function boardTime(d: Departure): number {
+  if ((d.status === 'late' || d.status === 'cancelled') && d.scheduled !== undefined) return d.scheduled;
+  return d.time;
 }
 
 export type HomeSection =

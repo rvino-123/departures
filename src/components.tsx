@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { HomeSection } from './lib/board';
+import { boardTime, type HomeSection } from './lib/board';
 import { textOn } from './lib/colors';
 import { DEFAULT_API_BASE } from './lib/nr';
 import { searchNr } from './lib/stations';
@@ -16,7 +16,7 @@ export function Row({ d, now }: { d: Departure; now: number }) {
   return (
     <li className={`row${cancelled ? ' cancelled' : ''}`}>
       <div className="row-time">
-        <span className="clock">{formatClock(cancelled && d.scheduled ? d.scheduled : d.time)}</span>
+        <span className="clock">{formatClock(boardTime(d))}</span>
         {!cancelled && !d.awaitingEstimate && <span className="countdown">{formatCountdown(d.time, now)}</span>}
       </div>
       <div className="row-main">

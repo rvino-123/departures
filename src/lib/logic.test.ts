@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildBoard, homeSection } from './board';
+import { boardTime, buildBoard, homeSection } from './board';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
 import { decideLocation } from './locate';
 import { placeForTfl } from './stations';
@@ -185,6 +185,25 @@ describe('the board', () => {
       now,
     );
     expect(board.map((d) => d.id)).toEqual(['delayed']);
+  });
+
+  it('orders the board by timetabled time, so the time column reads in order', () => {
+    const board = buildBoard(
+      [
+        dep({ id: 'ontime', time: at(12, 35), scheduled: at(12, 35) }),
+        dep({ id: 'late', status: 'late', time: at(12, 41), scheduled: at(12, 30) }),
+      ],
+      at(12, 20),
+    );
+    expect(board.map((d) => d.id)).toEqual(['late', 'ontime']);
+  });
+
+  it('lists late and cancelled trains under their timetabled time', () => {
+    expect(boardTime(dep({ time: at(8, 30), scheduled: at(8, 30) }))).toBe(at(8, 30));
+    expect(boardTime(dep({ status: 'late', time: at(8, 41), scheduled: at(8, 30) }))).toBe(at(8, 30));
+    expect(boardTime(dep({ status: 'late', time: at(8, 30), scheduled: at(8, 30), awaitingEstimate: true }))).toBe(at(8, 30));
+    expect(boardTime(dep({ status: 'cancelled', time: at(8, 45), scheduled: at(8, 30) }))).toBe(at(8, 30));
+    expect(boardTime(dep({ mode: 'tube', status: 'live', time: at(8, 33) }))).toBe(at(8, 33));
   });
 
   it('caps the board at 25 rows and removes duplicates', () => {
