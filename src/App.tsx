@@ -158,7 +158,12 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       {places.length > 1 && (
         <nav className="tabs">
           {places.map((p, i) => (
-            <button key={p.key} className={i === tab ? 'on' : ''} onClick={() => setTab(i)}>
+            <button
+              key={p.key}
+              className={i === tab ? 'on' : ''}
+              aria-current={i === tab ? 'true' : undefined}
+              onClick={() => setTab(i)}
+            >
               <span>{tabName(p.name)}</span>
               <small>{formatDistance(p.distance)}</small>
             </button>
@@ -199,7 +204,7 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       {showData && <HomeCard section={home} now={now} onRetry={refresh} />}
 
       {showData && (
-        <section>
+        <section className="plate">
           {home.kind !== 'hidden' && <h2>All departures</h2>}
           {board.length > 0 ? (
             <ul className="board">

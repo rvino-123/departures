@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { boardTime, HOME_HOURS, type HomeSection } from './lib/board';
-import { textOn } from './lib/colors';
+import { tagEdges, textOn } from './lib/colors';
 import { DEFAULT_API_BASE } from './lib/nr';
 import { rankSearch, searchNr } from './lib/stations';
 import { searchTfl } from './lib/tfl';
@@ -22,7 +22,7 @@ export function Row({ d, now }: { d: Departure; now: number }) {
       <div className="row-main">
         <div className="dest">{d.destination}</div>
         <div className="meta">
-          <span className="tag" style={{ background: d.color, color: textOn(d.color) }}>
+          <span className={`tag ${tagEdges(d.color)}`} style={{ background: d.color, color: textOn(d.color) }}>
             {d.line}
           </span>
           {d.platform && <span className="plat">Plat {d.platform}</span>}
@@ -39,7 +39,7 @@ export function Row({ d, now }: { d: Departure; now: number }) {
 export function Loader({ message }: { message: string }) {
   return (
     <div className="loader" role="status">
-      <div className="loader-ring" aria-hidden="true" />
+      <div className="loader-bar" aria-hidden="true" />
       <p>{message}</p>
     </div>
   );
@@ -56,7 +56,7 @@ export function HomeCard({
 }) {
   if (section.kind === 'hidden') return null;
   return (
-    <section className="home">
+    <section className="plate home">
       <h2>To {section.homeName}</h2>
       {section.kind === 'trains' && (
         <ul className="board">
@@ -111,9 +111,8 @@ export function Icon({ name }: { name: 'search' | 'refresh' | 'settings' | 'loca
       )}
       {name === 'settings' && (
         <>
-          <circle cx="12" cy="12" r="7.5" strokeWidth="3" strokeDasharray="2.95 2.94" strokeLinecap="butt" />
-          <circle cx="12" cy="12" r="5.5" />
-          <circle cx="12" cy="12" r="2" />
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
         </>
       )}
       {name === 'locate' && (

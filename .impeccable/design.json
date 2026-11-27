@@ -1,0 +1,365 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-27T00:00:00Z",
+  "title": "Design System: Departures",
+  "extensions": {
+    "colorMeta": {
+      "wall": {
+        "role": "neutral",
+        "displayName": "Station Wall",
+        "canonical": "oklch(93.9% 0.005 258.3)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#242526",
+          "#414244",
+          "#606164",
+          "#818285",
+          "#a4a5a7",
+          "#c8c9cb",
+          "#edeef0"
+        ]
+      },
+      "plate": {
+        "role": "neutral",
+        "displayName": "Plate White",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Sign Ink",
+        "canonical": "oklch(18.9% 0.010 248.4)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#232528",
+          "#3f4246",
+          "#5d6266",
+          "#7e8388",
+          "#a1a6aa",
+          "#c6c9cd",
+          "#eceff2"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Weathered Grey",
+        "canonical": "oklch(50.0% 0.017 254.7)",
+        "tonalRamp": [
+          "#090b0e",
+          "#22252a",
+          "#3d4249",
+          "#5b626a",
+          "#7c838c",
+          "#a0a6ad",
+          "#c5cad0",
+          "#ebeff4"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(91.5% 0.006 255.5)",
+        "tonalRamp": [
+          "#0a0b0c",
+          "#242527",
+          "#404245",
+          "#5f6165",
+          "#808286",
+          "#a3a5a8",
+          "#c7c9cc",
+          "#edeef0"
+        ]
+      },
+      "edge": {
+        "role": "neutral",
+        "displayName": "Edge",
+        "canonical": "oklch(65.4% 0.016 254.6)",
+        "tonalRamp": [
+          "#090b0e",
+          "#22252a",
+          "#3e4248",
+          "#5c626a",
+          "#7d838b",
+          "#a0a6ad",
+          "#c5cacf",
+          "#ebeff3"
+        ]
+      },
+      "press": {
+        "role": "neutral",
+        "displayName": "Press",
+        "canonical": "oklch(95.4% 0.005 258.3)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#242526",
+          "#414244",
+          "#606164",
+          "#818285",
+          "#a4a5a7",
+          "#c8c9cb",
+          "#edeef0"
+        ]
+      },
+      "rail-red": {
+        "role": "primary",
+        "displayName": "Rail Red",
+        "canonical": "oklch(53.0% 0.207 22.3)",
+        "tonalRamp": [
+          "#280000",
+          "#530003",
+          "#820015",
+          "#b50f29",
+          "#de424a",
+          "#f97776",
+          "#ffa7a3",
+          "#ffd5d1"
+        ]
+      },
+      "rail-red-dark": {
+        "role": "primary",
+        "displayName": "Rail Red (dark mode)",
+        "canonical": "oklch(64.9% 0.201 17.8)",
+        "tonalRamp": [
+          "#270000",
+          "#52000c",
+          "#800021",
+          "#b21637",
+          "#db4457",
+          "#f77880",
+          "#ffa7ab",
+          "#ffd5d7"
+        ]
+      },
+      "ok": {
+        "role": "status",
+        "displayName": "On Time",
+        "canonical": "oklch(49.8% 0.127 150.9)",
+        "tonalRamp": [
+          "#001101",
+          "#002f0f",
+          "#075025",
+          "#1e733c",
+          "#46965d",
+          "#76b785",
+          "#a4d8af",
+          "#d3fbda"
+        ]
+      },
+      "warn": {
+        "role": "status",
+        "displayName": "Delayed",
+        "canonical": "oklch(51.2% 0.130 53.1)",
+        "tonalRamp": [
+          "#1d0200",
+          "#411600",
+          "#692f00",
+          "#944a0b",
+          "#b96c36",
+          "#d79368",
+          "#f4bb98",
+          "#ffe4c9"
+        ]
+      },
+      "bad": {
+        "role": "status",
+        "displayName": "Cancelled",
+        "canonical": "oklch(52.1% 0.203 26.2)",
+        "tonalRamp": [
+          "#270000",
+          "#520000",
+          "#81000b",
+          "#b3181f",
+          "#dc4641",
+          "#f87970",
+          "#ffa89e",
+          "#ffd7cd"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Station name in the header and the setup title; 28px so long names wrap to two lines."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Bottom-sheet titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Board destinations (700) and clock times (800); primary button."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Banners, search results, notes, inputs, empty states."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Plate captions on their 3px rule; field labels."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Countdowns, distances, line tags, platform, table heads."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "loader-run",
+        "value": "1.1s cubic-bezier(0.65, 0, 0.35, 1) infinite alternate",
+        "purpose": "Ink block running along the loader track; reduced motion swaps to a 2s opacity pulse."
+      },
+      {
+        "name": "pull",
+        "value": "height 0.15s",
+        "purpose": "Pull-to-refresh reveal height."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "column-max",
+        "value": "640px"
+      }
+    ],
+    "fonts": [
+      {
+        "family": "Hanken Grotesk",
+        "source": "self-hosted variable woff2 (latin, latin-ext), weights 100-900, OFL",
+        "files": [
+          "src/assets/fonts/hanken-grotesk-latin.woff2",
+          "src/assets/fonts/hanken-grotesk-latin-ext.woff2"
+        ]
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width ink slab for the one committing action on a screen.",
+      "html": "<button class=\"ds-btn-primary\">Save</button>",
+      "css": ".ds-btn-primary{width:100%;min-height:56px;padding:16px;border:none;border-radius:0;background:var(--fg,#101418);color:var(--on-ink,#fff);font-family:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;font-size:18px;font-weight:800;cursor:pointer}.ds-btn-primary:active{opacity:.85}.ds-btn-primary:focus-visible{outline:2px solid var(--fg,#101418);outline-offset:2px}.ds-btn-primary:disabled{opacity:.35}"
+    },
+    {
+      "name": "Action Plate",
+      "kind": "button",
+      "refersTo": "button-action",
+      "description": "44px square header action with a 2px stroke icon; inverts to ink when pressed or expanded.",
+      "html": "<button class=\"ds-action\" aria-label=\"Search\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m15.5 15.5 5 5\"/></svg></button>",
+      "css": ".ds-action{display:grid;place-items:center;width:44px;height:44px;padding:0;border:none;border-radius:0;background:var(--plate,#fff);color:var(--fg,#101418);cursor:pointer}.ds-action:active,.ds-action[aria-expanded=true]{background:var(--fg,#101418);color:var(--plate,#fff)}.ds-action:focus-visible{outline:2px solid var(--fg,#101418);outline-offset:2px}"
+    },
+    {
+      "name": "Link Button",
+      "kind": "button",
+      "refersTo": "button-link",
+      "description": "Underlined ink text action; red underline inside the home plate.",
+      "html": "<button class=\"ds-link\">Try again</button>",
+      "css": ".ds-link{background:none;border:none;padding:0;min-height:44px;color:var(--fg,#101418);font-family:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;font-size:16px;font-weight:700;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;cursor:pointer}.ds-link:focus-visible{outline:2px solid var(--fg,#101418);outline-offset:2px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Square plate field with a 1.5px edge outline that turns ink on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search stations\">",
+      "css": ".ds-input{width:100%;min-height:48px;padding:12px 14px;border:1.5px solid var(--edge,#8a919a);border-radius:0;background:var(--plate,#fff);color:var(--fg,#101418);font-family:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;font-size:16px;font-weight:500}.ds-input::placeholder{color:var(--muted,#5d646d);opacity:1}.ds-input:focus{outline:none;border-color:var(--fg,#101418)}"
+    },
+    {
+      "name": "Station Tabs",
+      "kind": "nav",
+      "refersTo": "station-tab",
+      "description": "One plate of equal columns; the selected station carries a 4px rail-red top bar.",
+      "html": "<div class=\"ds-tabs\"><button class=\"on\"><span>Liverpool Street</span><small>50 m</small></button><button><span>Moorgate</span><small>460 m</small></button><button><span>Aldgate</span><small>570 m</small></button></div>",
+      "css": ".ds-tabs{display:flex;background:var(--plate,#fff);font-family:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}.ds-tabs button{flex:1 1 0;min-width:0;text-align:left;padding:10px 12px 11px;border:none;border-top:4px solid transparent;border-radius:0;background:none;display:flex;flex-direction:column;gap:2px;cursor:pointer;font-family:inherit}.ds-tabs button+button{box-shadow:inset 1px 0 0 var(--line,#e0e3e7)}.ds-tabs span{font-size:14px;font-weight:700;line-height:1.25;color:var(--muted,#5d646d)}.ds-tabs small{font-size:12px;font-weight:500;color:var(--muted,#5d646d)}.ds-tabs .on{border-top-color:var(--red,#c8102e)}.ds-tabs .on span{color:var(--fg,#101418)}.ds-tabs button:focus-visible{outline:2px solid var(--fg,#101418);outline-offset:2px}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "chip",
+      "refersTo": "segmented-on",
+      "description": "Outlined plate of options; the pressed one is an ink fill.",
+      "html": "<div class=\"ds-seg\"><button aria-pressed=\"true\">Auto</button><button aria-pressed=\"false\">Light</button><button aria-pressed=\"false\">Dark</button></div>",
+      "css": ".ds-seg{display:inline-flex;background:var(--plate,#fff);border:1.5px solid var(--edge,#8a919a);font-family:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif}.ds-seg button{min-width:96px;min-height:44px;padding:0 16px;border:none;border-radius:0;background:none;color:var(--fg,#101418);font-family:inherit;font-size:16px;font-weight:600;cursor:pointer}.ds-seg button[aria-pressed=true]{background:var(--fg,#101418);color:var(--on-ink,#fff);font-weight:700}.ds-seg button:focus-visible{outline:2px solid var(--fg,#101418);outline-offset:2px}"
+    },
+    {
+      "name": "Board Plate",
+      "kind": "card",
+      "refersTo": "plate",
+      "description": "The one container: caption on a heavy rule, rows set like sign lines. The home plate's caption and rule are rail red.",
+      "html": "<section class=\"ds-plate ds-home\"><h2>To Maidenhead</h2><ul><li class=\"ds-row\"><div><div class=\"ds-clock\">22:20</div><div class=\"ds-cd\">14 min</div></div><div><div class=\"ds-dest\">Maidenhead</div><div class=\"ds-meta\"><span class=\"ds-tag\" style=\"background:#6950A1;color:#fff\">Elizabeth Line</span><b>Plat B</b></div></div><div class=\"ds-status\">On time</div></li><li class=\"ds-row\"><div><div class=\"ds-clock\">22:35</div><div class=\"ds-cd\">29 min</div></div><div><div class=\"ds-dest\">Reading</div><div class=\"ds-meta\"><span class=\"ds-tag\" style=\"background:#6950A1;color:#fff\">Elizabeth Line</span><b>Plat B</b></div></div><div class=\"ds-status ds-warn\">Exp 22:41</div></li></ul></section>",
+      "css": ".ds-plate{background:var(--plate,#fff);padding:0 16px;font-family:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;font-feature-settings:'tnum' 1;color:var(--fg,#101418)}.ds-plate h2{margin:0;padding:14px 0 8px;border-bottom:3px solid var(--fg,#101418);font-size:14px;font-weight:800;letter-spacing:.01em;line-height:1.2}.ds-home h2{color:var(--red,#c8102e);border-bottom-color:var(--red,#c8102e)}.ds-plate ul{list-style:none;margin:0;padding:0}.ds-row{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line,#e0e3e7)}.ds-row:last-child{border-bottom:none}.ds-clock{font-size:18px;font-weight:800;line-height:1.15}.ds-cd{font-size:12px;font-weight:500;color:var(--muted,#5d646d)}.ds-dest{font-size:18px;font-weight:700;line-height:1.15;letter-spacing:-.01em}.ds-meta{display:flex;gap:4px 8px;align-items:center;margin-top:5px;font-size:12px}.ds-tag{box-shadow:inset 0 0 0 1px rgb(0 0 0/.2);padding:2px 6px;font-weight:700;line-height:1.35}.ds-status{font-size:14px;font-weight:700;text-align:right;color:var(--ok,#12763a)}.ds-warn{color:var(--warn,#9e4d00)}"
+    },
+    {
+      "name": "Offline Banner",
+      "kind": "custom",
+      "refersTo": "banner-offline",
+      "description": "Square status banner: warn wash with a 1.5px warn border.",
+      "html": "<button class=\"ds-banner\">Offline. Showing the board from 22:04.</button>",
+      "css": ".ds-banner{display:block;width:100%;text-align:left;padding:12px 16px;border:1.5px solid var(--warn,#9e4d00);border-radius:0;background:var(--warn-bg,#fff2df);color:var(--fg,#101418);font-family:'Hanken Grotesk', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;font-size:16px;font-weight:600;line-height:1.35;cursor:pointer}.ds-banner:active{background:var(--press,#eef0f3)}.ds-banner:focus-visible{outline:2px solid var(--fg,#101418);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Station Sign Plates",
+    "overview": "Every section of the app is a station sign plate in the 1960s British Rail corporate-identity manner: a flat, square-cornered white plate fixed to a grey wall, a heavy rule under its caption, and rows set like the lines of a sign. The phone becomes a piece of station furniture: read at a glance, on the move, on a platform or heading home. It replaced an undocumented generic look of rounded inset cards and system blue.\n\nThe world is literal, not costumed. There is no fake split-flap, no dot-matrix, no signage pastiche: the reference shows only in the flatness, the rules, the heavy grotesk, and the discipline of one red. TfL line and National Rail operator colours appear at full strength on square tags, because they are facts about the service, not decoration. Light and dark carry equal finish: in dark mode the wall goes near-black and the plates go graphite, with every role preserved.\n\nDensity is a working board's density: rows of time, destination, tag, platform and status, separated by hairlines, with nothing between the reader and the next train.",
+    "keyCharacteristics": [
+      "Flat white plates on a grey wall; no radii, no shadows, no gradients.",
+      "Captions sit on a heavy 3px rule; the home plate's caption and rule are rail red.",
+      "One rail red, used structurally only: it marks what is yours.",
+      "Heavy grotesk (Hanken Grotesk, 700 to 800) with tabular figures throughout.",
+      "Line and operator colours as full-strength square tags."
+    ],
+    "rules": [
+      {
+        "name": "The Yours-Only Red Rule",
+        "section": "colors",
+        "body": "Rail red marks only what belongs to the owner: the selected station and the trains home. It is never a fill, never a button colour, never an error colour (errors use `bad`, a separate red). If a new use of red does not answer \"is this mine?\", it is not red."
+      },
+      {
+        "name": "The Facts At Full Strength Rule",
+        "section": "colors",
+        "body": "Line and operator colours from `src/lib/colors.ts` render at full saturation on square tags, text colour chosen for contrast, edge to edge. Only a tag under 2.5:1 against the current plate gets a 1px inset edge (`tagEdges()` in `src/lib/colors.ts`): `rgb(0 0 0 / 0.22)` on pale lines in light, `rgb(255 255 255 / 0.3)` on near-black lines in dark. Never tint, mute or restyle them to suit the palette."
+      },
+      {
+        "name": "The Heavy Or Quiet Rule",
+        "section": "typography",
+        "body": "Type is either heavy ink (700 to 800) or medium grey (500). Nothing in between carries meaning; nothing is light."
+      },
+      {
+        "name": "The Sentence Case Caption Rule",
+        "section": "typography",
+        "body": "Plate captions are sentence case (\"To Maidenhead\", \"All departures\"), never uppercase or tracked, and they sit on their rule rather than floating above content as a label."
+      },
+      {
+        "name": "The Fixed To The Wall Rule",
+        "section": "elevation",
+        "body": "Plates are bolted on, not floating. No shadows, no blur, no gradients, no lift on hover or press. State is shown by inverting fill (plate to ink) or by the press tint."
+      }
+    ],
+    "dos": [
+      "**Do** put every new section on a plate: plate fill, 0 16px padding, a 14px 800 sentence-case caption on a 3px ink rule.",
+      "**Do** keep rail red to the three structural marks: selected tab top bar, home plate caption and rule, home retry-link underline.",
+      "**Do** show state by inverting to ink (selected segment, pressed action) or by the press tint.",
+      "**Do** use Hanken Grotesk at 700 to 800 for anything read at a glance, with tabular figures for times.",
+      "**Do** render line and operator colours at full strength on square tags, edging only those that fade into the plate.",
+      "**Do** give light and dark the same finish; every token has a dark pair.",
+      "**Do** keep touch targets at 44px or more."
+    ],
+    "donts": [
+      "**Don't** round anything; corners are 0px.",
+      "**Don't** add shadows, blur or gradients to show elevation.",
+      "**Don't** use rail red as a fill, a button colour or an error colour.",
+      "**Don't** imitate split-flap, dot-matrix or LED boards; the reference is the sign plate, not a costume.",
+      "**Don't** tint, desaturate or recolour line and operator tags to match the palette.",
+      "**Don't** set captions in uppercase or tracked small caps."
+    ]
+  }
+}

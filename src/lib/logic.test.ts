@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { boardTime, buildBoard, homeSection } from './board';
+import { OPERATOR_COLORS, TUBE_COLORS, tagEdges } from './colors';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
 import { loadPlace, partialMessage } from './load';
 import { decideLocation } from './locate';
@@ -456,5 +457,15 @@ describe('station search', () => {
     const bondTube: TflStop = { id: '940GZZLUBND', name: 'Bond Street Underground Station', lat: 51.5142, lon: -0.1494, modes: ['tube'] };
     const picks = rankSearch('bond street', searchNr('bond street'), [bondTube], city);
     expect(picks.filter((p) => p.kind === 'tfl')).toHaveLength(0);
+  });
+});
+
+describe('line tag edges', () => {
+  it('edges only the tags that fade into a plate', () => {
+    expect(tagEdges(TUBE_COLORS.circle)).toBe('edge-light');
+    expect(tagEdges(TUBE_COLORS['hammersmith-city'])).toBe('edge-light');
+    expect(tagEdges(TUBE_COLORS.northern)).toBe('edge-dark');
+    expect(tagEdges(TUBE_COLORS.central)).toBe('');
+    expect(tagEdges(OPERATOR_COLORS.XR)).toBe('');
   });
 });

@@ -46,3 +46,34 @@ export function textOn(bg: string): string {
   const b = parseInt(hex.slice(4, 6), 16);
   return 0.299 * r + 0.587 * g + 0.114 * b > 160 ? '#111' : '#fff';
 }
+
+/** The plates tags sit on, light and dark (keep in step with --plate in src/index.css). */
+const PLATES = { light: '#ffffff', dark: '#171a1f' } as const;
+
+function luminance(hex: string): number {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Below this contrast against the plate a tag's block loses its shape (its label still reads). */
+const EDGE_BELOW = 2.5;
+
+/**
+ * Which plates a tag colour fades into, so only those tags get an edge.
+ * Returns class names: 'edge-light' (pale on the white plate), 'edge-dark' (near-black on the dark plate).
+ */
+export function tagEdges(bg: string): string {
+  return (['light', 'dark'] as const)
+    .filter((t) => contrast(bg, PLATES[t]) < EDGE_BELOW)
+    .map((t) => `edge-${t}`)
+    .join(' ');
+}
