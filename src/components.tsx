@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { boardTime, HOME_HOURS, type HomeSection } from './lib/board';
 import { textOn } from './lib/colors';
 import { DEFAULT_API_BASE } from './lib/nr';
-import { searchNr } from './lib/stations';
+import { rankSearch, searchNr } from './lib/stations';
 import { searchTfl } from './lib/tfl';
 import { cleanTflName } from './lib/geo';
 import { formatClock, formatCountdown } from './lib/time';
-import type { Departure, NrStation, Settings, TflStop } from './lib/types';
+import type { Departure, SearchPick, Settings, TflStop } from './lib/types';
 import { lastMinute, loadUsage, type Counts, type RequestKind } from './lib/usage';
 import { useNow } from './hooks';
 
@@ -82,38 +82,102 @@ export function HomeCard({
   );
 }
 
-export type SearchPick = { kind: 'nr'; station: NrStation } | { kind: 'tfl'; stop: TflStop };
+/** Line icons drawn to one size and stroke, in place of mismatched Unicode glyphs. */
+export function Icon({ name }: { name: 'search' | 'refresh' | 'settings' | 'locate' }) {
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {name === 'search' && (
+        <>
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m15.5 15.5 5 5" />
+        </>
+      )}
+      {name === 'refresh' && (
+        <>
+          <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+          <path d="M20 4v5h-5" />
+        </>
+      )}
+      {name === 'settings' && (
+        <>
+          <circle cx="12" cy="12" r="7.5" strokeWidth="3" strokeDasharray="2.95 2.94" strokeLinecap="butt" />
+          <circle cx="12" cy="12" r="5.5" />
+          <circle cx="12" cy="12" r="2" />
+        </>
+      )}
+      {name === 'locate' && (
+        <>
+          <circle cx="12" cy="12" r="7" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/** TfL search runs from this many characters; shorter queries search National Rail only. */
+const TFL_SEARCH_MIN = 3;
+/** Stop waiting for TfL and show the rail results after this long. */
+const TFL_SEARCH_GIVE_UP_MS = 2500;
 
 export function StationSearch({
   onPick,
   placeholder = 'Search for a station',
   railOnly = false,
   autoFocus = false,
+  near,
 }: {
   onPick: (p: SearchPick) => void;
   placeholder?: string;
   railOnly?: boolean;
   autoFocus?: boolean;
+  /** Where the user is (or the station they're looking at), so nearby stations rank first. */
+  near?: { lat: number; lon: number };
 }) {
   const [q, setQ] = useState('');
-  const [tfl, setTfl] = useState<TflStop[]>([]);
-  const nr = searchNr(q, 6);
-  // Hide Tube/DLR results that duplicate a rail result (e.g. Bond Street) – picking the rail one merges them anyway.
-  const railNames = new Set(nr.map((s) => s.name.toLowerCase()));
-  const tflShown = tfl.filter((s) => !railNames.has(cleanTflName(s.name).toLowerCase()));
+  // TfL results, tagged with the query they answer, so stale ones are never shown.
+  const [tfl, setTfl] = useState<{ q: string; stops: TflStop[] }>({ q: '', stops: [] });
+  const query = q.trim();
+  const wantTfl = !railOnly && query.length >= TFL_SEARCH_MIN;
+  // Wait for TfL before showing anything, so the list appears once instead of reshuffling under a thumb.
+  const waiting = wantTfl && tfl.q !== query;
+  const results = waiting ? [] : rankSearch(query, searchNr(query), wantTfl ? tfl.stops : [], near);
 
   useEffect(() => {
-    if (railOnly || q.trim().length < 3) {
-      setTfl([]);
-      return;
-    }
+    if (!wantTfl) return;
     const ctrl = new AbortController();
-    const t = setTimeout(() => searchTfl(q.trim(), ctrl.signal).then(setTfl).catch(() => {}), 250);
+    const settle = (stops: TflStop[]) => setTfl((r) => (r.q === query ? r : { q: query, stops }));
+    const t = setTimeout(
+      () =>
+        searchTfl(query, ctrl.signal)
+          .then(settle)
+          .catch(() => {
+            if (!ctrl.signal.aborted) settle([]);
+          }),
+      250,
+    );
+    const giveUp = setTimeout(() => {
+      ctrl.abort();
+      settle([]);
+    }, TFL_SEARCH_GIVE_UP_MS);
     return () => {
       clearTimeout(t);
+      clearTimeout(giveUp);
       ctrl.abort();
     };
-  }, [q, railOnly]);
+  }, [query, wantTfl]);
 
   const pick = (p: SearchPick) => {
     setQ('');
@@ -131,22 +195,28 @@ export function StationSearch({
         autoComplete="off"
         autoCorrect="off"
       />
-      {(nr.length > 0 || tflShown.length > 0) && (
+      {waiting && (
+        <ul className="results" aria-busy="true">
+          <li className="searching">Searching…</li>
+        </ul>
+      )}
+      {results.length > 0 && (
         <ul className="results">
-          {nr.map((s) => (
-            <li key={s.crs}>
-              <button onClick={() => pick({ kind: 'nr', station: s })}>
-                {s.name} <small>{s.crs}</small>
-              </button>
-            </li>
-          ))}
-          {tflShown.map((s) => (
-            <li key={s.id}>
-              <button onClick={() => pick({ kind: 'tfl', stop: s })}>
-                {cleanTflName(s.name)} <small>{s.modes.join(' · ').toUpperCase()}</small>
-              </button>
-            </li>
-          ))}
+          {results.map((r) =>
+            r.kind === 'nr' ? (
+              <li key={r.station.crs}>
+                <button onClick={() => pick(r)}>
+                  {r.station.name} <small>{r.station.crs}</small>
+                </button>
+              </li>
+            ) : (
+              <li key={r.stop.id}>
+                <button onClick={() => pick(r)}>
+                  {cleanTflName(r.stop.name)} <small>{r.stop.modes.join(' · ').toUpperCase()}</small>
+                </button>
+              </li>
+            ),
+          )}
         </ul>
       )}
     </div>
@@ -290,10 +360,14 @@ export function SettingsSheet({
   settings,
   onSave,
   onClose,
+  theme,
+  onToggleTheme,
 }: {
   settings: Settings;
   onSave: (s: Settings) => void;
   onClose: () => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
 }) {
   const [s, setS] = useState(settings);
   return (
@@ -314,6 +388,18 @@ export function SettingsSheet({
           <KeyHelp />
         </div>
         <HomePicker settings={s} onChange={setS} />
+        <div className="field">
+          <span className="label" id="appearance">
+            Appearance
+          </span>
+          <div className="segmented" role="group" aria-labelledby="appearance">
+            {(['light', 'dark'] as const).map((t) => (
+              <button key={t} aria-pressed={theme === t} onClick={() => theme !== t && onToggleTheme()}>
+                {t === 'light' ? 'Light' : 'Dark'}
+              </button>
+            ))}
+          </div>
+        </div>
         <details className="help">
           <summary>Advanced</summary>
           <label htmlFor="base">Live Departure Board API address</label>

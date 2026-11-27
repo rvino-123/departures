@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HomeCard, Loader, Row, SettingsSheet, Setup, StationSearch, type SearchPick } from './components';
+import { HomeCard, Icon, Loader, Row, SettingsSheet, Setup, StationSearch } from './components';
 import { getFix, useGestures, useNow, useOnVisible, usePlaceData, useTheme } from './hooks';
 import { buildBoard, homeSection } from './lib/board';
 import { decideLocation, REASON_TEXT, type FallbackReason } from './lib/locate';
@@ -8,7 +8,7 @@ import { forgetRejectedKey } from './lib/nr';
 import { loadSettings, saveSettings } from './lib/storage';
 import { partialMessage } from './lib/load';
 import { formatAge, formatClock } from './lib/time';
-import type { Place, Settings } from './lib/types';
+import type { Place, SearchPick, Settings } from './lib/types';
 import './App.css';
 
 type View =
@@ -18,6 +18,15 @@ type View =
   | { kind: 'manual'; place: Place };
 
 const RELOCATE_AFTER_MS = 60_000;
+
+/**
+ * Tabs are narrow: "London " in front of a terminus name pushes out the part that tells them apart.
+ * Only stripped where the rest still names the station (not London Bridge, London Fields, London Road).
+ */
+function tabName(name: string): string {
+  const rest = name.replace(/^London /, '');
+  return rest !== name && !/^(Bridge|Fields|Road)\b/.test(rest) ? rest : name;
+}
 /** Four missed 30 s refreshes: past this the "Updated" line turns amber. */
 const OLD_DATA_MS = 2 * 60_000;
 
@@ -134,17 +143,14 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
           </p>
         </div>
         <div className="actions">
-          <button aria-label="Search stations" onClick={() => setShowSearch((s) => !s)}>
-            ⌕
+          <button aria-label="Search stations" aria-expanded={showSearch} onClick={() => setShowSearch((s) => !s)}>
+            <Icon name="search" />
           </button>
           <button aria-label="Refresh" onClick={refresh}>
-            ↻
-          </button>
-          <button aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggleTheme}>
-            {theme === 'dark' ? '☀' : '☾'}
+            <Icon name="refresh" />
           </button>
           <button aria-label="Settings" onClick={() => setShowSettings(true)}>
-            ⚙
+            <Icon name="settings" />
           </button>
         </div>
       </header>
@@ -153,7 +159,7 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
         <nav className="tabs">
           {places.map((p, i) => (
             <button key={p.key} className={i === tab ? 'on' : ''} onClick={() => setTab(i)}>
-              <span>{p.name}</span>
+              <span>{tabName(p.name)}</span>
               <small>{formatDistance(p.distance)}</small>
             </button>
           ))}
@@ -161,13 +167,13 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       )}
 
       {(showSearch || view.kind === 'fallback') && (
-        <StationSearch onPick={pick} autoFocus={showSearch} />
+        <StationSearch onPick={pick} autoFocus={showSearch} near={place} />
       )}
 
       {view.kind === 'fallback' && <p className="note">{REASON_TEXT[view.reason]}</p>}
       {view.kind === 'manual' && (
         <button className="note link" onClick={locate}>
-          ⦿ Use my location instead
+          <Icon name="locate" /> Use my location instead
         </button>
       )}
 
@@ -229,6 +235,8 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       {showSettings && (
         <SettingsSheet
           settings={settings}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onClose={() => setShowSettings(false)}
           onSave={(s) => {
             onSettings(s);

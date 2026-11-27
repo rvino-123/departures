@@ -3,7 +3,7 @@ import { boardTime, buildBoard, homeSection } from './board';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
 import { loadPlace, partialMessage } from './load';
 import { decideLocation } from './locate';
-import { placeForTfl } from './stations';
+import { placeForTfl, rankSearch, searchNr } from './stations';
 import { fetchNrBoard, forgetRejectedKey, NrKeyError, parseNrBoard } from './nr';
 import { parseArrivals, parseNearby } from './tfl';
 import { clockToEpoch, formatAge, formatCountdown } from './time';
@@ -427,5 +427,34 @@ describe('when some sources fail', () => {
     const data = await loadPlace(place, settings);
     expect(data.failedSources).toEqual(['tfl']);
     expect(data.partial).toBe(true);
+  });
+});
+
+describe('station search', () => {
+  const city = { lat: 51.5155, lon: -0.0922 };
+  const bank: TflStop = { id: 'HUBBAN', name: 'Bank', lat: 51.513395, lon: -0.089095, modes: ['dlr', 'tube'] };
+  const embankment: TflStop = { id: '940GZZLUEMB', name: 'Embankment Underground Station', lat: 51.507058, lon: -0.122666, modes: ['tube'] };
+  const name = (p: ReturnType<typeof rankSearch>[number]) => (p.kind === 'nr' ? p.station.name : p.stop.name);
+
+  it('puts London stations ahead of better matches elsewhere in Britain', () => {
+    const names = rankSearch('bank', searchNr('bank'), [bank, embankment], city).map(name);
+    expect(names.slice(0, 2)).toEqual(['Bank', 'Embankment Underground Station']);
+    expect(names).toContain('Bank Hall');
+    expect(names).toHaveLength(8);
+  });
+
+  it('ranks by how well the name matches when it does not know where you are', () => {
+    const names = rankSearch('read', searchNr('read'), []).map(name);
+    expect(names[0]).toBe('Reading');
+  });
+
+  it('finds a station by its code', () => {
+    expect(rankSearch('lst', searchNr('lst'), [], city).map(name)[0]).toBe('London Liverpool Street');
+  });
+
+  it('drops a Tube stop that duplicates a rail station', () => {
+    const bondTube: TflStop = { id: '940GZZLUBND', name: 'Bond Street Underground Station', lat: 51.5142, lon: -0.1494, modes: ['tube'] };
+    const picks = rankSearch('bond street', searchNr('bond street'), [bondTube], city);
+    expect(picks.filter((p) => p.kind === 'tfl')).toHaveLength(0);
   });
 });

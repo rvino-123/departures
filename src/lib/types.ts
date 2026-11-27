@@ -19,6 +19,9 @@ export interface TflStop {
   hub?: string;
 }
 
+/** A station chosen from search: a National Rail station, or a Tube/DLR stop from TfL. */
+export type SearchPick = { kind: 'nr'; station: NrStation } | { kind: 'tfl'; stop: TflStop };
+
 /** One "station" as the user sees it: NR + Tube/DLR platforms merged together. */
 export interface Place {
   key: string;
