@@ -101,7 +101,7 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
   const pick = async (p: SearchPick) => {
     setShowSearch(false);
     const id = ++nav.current;
-    const chosen = p.kind === 'nr' ? await placeForNr(p.station) : placeForTfl(p.stop);
+    const chosen = p.kind === 'nr' ? await placeForNr(p.station) : await placeForTfl(p.stop);
     if (id !== nav.current) return;
     setTab(0);
     setView({ kind: 'manual', place: chosen });
@@ -203,7 +203,10 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
                   ? 'Add your National Rail key to see trains here.'
                   : data.keyRejected || data.partial
                     ? 'Couldn’t load departures for this station.'
-                    : 'No departures in the next 90 minutes.'}
+                    : hasKey && place.crs.length > 0
+                      ? 'No departures in the next 90 minutes.'
+                      : // Only TfL was asked, and it answers an unknown stop with an empty list too.
+                        'No live times from TfL for this stop right now.'}
               </p>
             )}
           </section>

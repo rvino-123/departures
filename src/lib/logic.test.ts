@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildBoard, homeSection } from './board';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
 import { decideLocation } from './locate';
+import { placeForTfl } from './stations';
 import { fetchNrBoard, forgetRejectedKey, NrKeyError, parseNrBoard } from './nr';
 import { parseArrivals, parseNearby } from './tfl';
 import { clockToEpoch, formatCountdown } from './time';
@@ -322,5 +323,41 @@ describe('a rejected National Rail key', () => {
     vi.setSystemTime(at(12, 5));
     await expect(fetchNrBoard(q)).rejects.toBeInstanceOf(NrKeyError);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('picking a Tube/DLR stop from search', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const bankHub: TflStop = { id: 'HUBBAN', name: 'Bank', lat: 51.513395, lon: -0.089095, modes: ['dlr', 'tube'] };
+  const nearbyBank = {
+    stopPoints: [
+      { naptanId: '940GZZDLBNK', commonName: 'Bank DLR Station', lat: 51.5134, lon: -0.0886, modes: ['dlr'], hubNaptanCode: 'HUBBAN' },
+      { naptanId: '940GZZLUBNK', commonName: 'Bank Underground Station', lat: 51.5133, lon: -0.0890, modes: ['tube'], hubNaptanCode: 'HUBBAN' },
+      { naptanId: '940GZZLUCST', commonName: 'Cannon Street Underground Station', lat: 51.5113, lon: -0.0904, modes: ['tube'], hubNaptanCode: 'HUBCST' },
+    ],
+  };
+
+  it('swaps an interchange for the Tube and DLR stations inside it', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(nearbyBank))));
+    const place = await placeForTfl(bankHub);
+    expect(place.tflIds.sort()).toEqual(['940GZZDLBNK', '940GZZLUBNK']);
+    // HUBBAN looks like it names BAN (Banbury), which is 100 km away.
+    expect(place.crs).toEqual([]);
+    expect(place.name).toBe('Bank');
+  });
+
+  it('keeps the interchange if TfL finds nothing inside it', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 500 })));
+    const place = await placeForTfl(bankHub);
+    expect(place.tflIds).toEqual(['HUBBAN']);
+  });
+
+  it('uses an ordinary station as it is, without asking TfL', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const place = await placeForTfl(angel);
+    expect(place.tflIds).toEqual([angel.id]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
