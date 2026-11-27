@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildBoard, homeSection } from './board';
+import { boardTime, buildBoard, homeSection } from './board';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
+import { loadPlace, partialMessage } from './load';
 import { decideLocation } from './locate';
+import { placeForTfl, rankSearch, searchNr } from './stations';
 import { fetchNrBoard, forgetRejectedKey, NrKeyError, parseNrBoard } from './nr';
 import { parseArrivals, parseNearby } from './tfl';
-import { clockToEpoch, formatCountdown } from './time';
+import { clockToEpoch, formatAge, formatCountdown } from './time';
 import type { Departure, NrStation, Place, TflStop } from './types';
 import { countRequest, dayKey, lastMinute, loadUsage, prune, summarise, type UsageDays } from './usage';
 
@@ -33,6 +35,12 @@ describe('time', () => {
     expect(clockToEpoch('14:30', at(14, 0))).toBe(at(14, 30));
     expect(clockToEpoch('On time', at(14, 0))).toBeUndefined();
   });
+  it('says how long ago the board was updated', () => {
+    expect(formatAge(at(8, 30), at(8, 30) + 40_000)).toBe('just now');
+    expect(formatAge(at(8, 30), at(8, 36))).toBe('6 min ago');
+    expect(formatAge(at(8, 30), at(10, 0))).toBe('at 08:30');
+  });
+
   it('formats countdowns', () => {
     expect(formatCountdown(at(12, 0), at(12, 0))).toBe('due');
     expect(formatCountdown(at(12, 7), at(12, 0))).toBe('7 min');
@@ -186,6 +194,25 @@ describe('the board', () => {
     expect(board.map((d) => d.id)).toEqual(['delayed']);
   });
 
+  it('orders the board by timetabled time, so the time column reads in order', () => {
+    const board = buildBoard(
+      [
+        dep({ id: 'ontime', time: at(12, 35), scheduled: at(12, 35) }),
+        dep({ id: 'late', status: 'late', time: at(12, 41), scheduled: at(12, 30) }),
+      ],
+      at(12, 20),
+    );
+    expect(board.map((d) => d.id)).toEqual(['late', 'ontime']);
+  });
+
+  it('lists late and cancelled trains under their timetabled time', () => {
+    expect(boardTime(dep({ time: at(8, 30), scheduled: at(8, 30) }))).toBe(at(8, 30));
+    expect(boardTime(dep({ status: 'late', time: at(8, 41), scheduled: at(8, 30) }))).toBe(at(8, 30));
+    expect(boardTime(dep({ status: 'late', time: at(8, 30), scheduled: at(8, 30), awaitingEstimate: true }))).toBe(at(8, 30));
+    expect(boardTime(dep({ status: 'cancelled', time: at(8, 45), scheduled: at(8, 30) }))).toBe(at(8, 30));
+    expect(boardTime(dep({ mode: 'tube', status: 'live', time: at(8, 33) }))).toBe(at(8, 33));
+  });
+
   it('caps the board at 25 rows and removes duplicates', () => {
     const many = Array.from({ length: 40 }, (_, i) => dep({ id: `d${i}`, time: at(12, 1 + i) }));
     expect(buildBoard([...many, ...many], now)).toHaveLength(25);
@@ -199,27 +226,36 @@ describe('the "To home" section', () => {
   const angelPlace: Place = { key: 'tfl:a', name: 'Angel', lat: 0, lon: 0, crs: [], tflIds: ['a'] };
   const homePlace: Place = { key: 'nr:RDG', name: 'Reading', lat: 0, lon: 0, crs: ['RDG'], tflIds: [] };
 
+  const ok = { hasKey: true };
+
   it('is hidden at the home station', () => {
-    expect(homeSection(homePlace, home, true, [dep({})], now)).toEqual({ kind: 'hidden' });
+    expect(homeSection(homePlace, home, ok, [dep({})], now)).toEqual({ kind: 'hidden' });
   });
 
   it('says there are no direct trains from a Tube-only station', () => {
-    expect(homeSection(angelPlace, home, true, [], now)).toEqual({ kind: 'none', homeName: 'Reading' });
+    expect(homeSection(angelPlace, home, ok, [], now)).toEqual({ kind: 'noRail', homeName: 'Reading' });
   });
 
   it('shows the next 4 trains within 3 hours', () => {
     const trains = Array.from({ length: 6 }, (_, i) => dep({ id: `h${i}`, time: at(12, 10 + i * 40) }));
-    const s = homeSection(lst, home, true, trains, now);
+    const s = homeSection(lst, home, ok, trains, now);
     expect(s.kind).toBe('trains');
     if (s.kind === 'trains') expect(s.trains.map((t) => t.id)).toEqual(['h0', 'h1', 'h2', 'h3']);
   });
 
   it('says none when nothing runs in the next 3 hours', () => {
-    expect(homeSection(lst, home, true, [dep({ time: at(15, 30) })], now).kind).toBe('none');
+    expect(homeSection(lst, home, ok, [dep({ time: at(15, 30) })], now).kind).toBe('none');
   });
 
   it('is hidden without a National Rail key', () => {
-    expect(homeSection(lst, home, false, [], now)).toEqual({ kind: 'hidden' });
+    expect(homeSection(lst, home, { hasKey: false }, [], now)).toEqual({ kind: 'hidden' });
+  });
+
+  it('says it could not check, rather than "none", when the request failed or the key was rejected', () => {
+    expect(homeSection(lst, home, { hasKey: true, homeFailed: true }, [], now))
+      .toEqual({ kind: 'unknown', homeName: 'Reading', reason: 'failed' });
+    expect(homeSection(lst, home, { hasKey: true, keyRejected: true, homeFailed: true }, [], now))
+      .toEqual({ kind: 'unknown', homeName: 'Reading', reason: 'rejected' });
   });
 });
 
@@ -322,5 +358,103 @@ describe('a rejected National Rail key', () => {
     vi.setSystemTime(at(12, 5));
     await expect(fetchNrBoard(q)).rejects.toBeInstanceOf(NrKeyError);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('picking a Tube/DLR stop from search', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const bankHub: TflStop = { id: 'HUBBAN', name: 'Bank', lat: 51.513395, lon: -0.089095, modes: ['dlr', 'tube'] };
+  const nearbyBank = {
+    stopPoints: [
+      { naptanId: '940GZZDLBNK', commonName: 'Bank DLR Station', lat: 51.5134, lon: -0.0886, modes: ['dlr'], hubNaptanCode: 'HUBBAN' },
+      { naptanId: '940GZZLUBNK', commonName: 'Bank Underground Station', lat: 51.5133, lon: -0.0890, modes: ['tube'], hubNaptanCode: 'HUBBAN' },
+      { naptanId: '940GZZLUCST', commonName: 'Cannon Street Underground Station', lat: 51.5113, lon: -0.0904, modes: ['tube'], hubNaptanCode: 'HUBCST' },
+    ],
+  };
+
+  it('swaps an interchange for the Tube and DLR stations inside it', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(nearbyBank))));
+    const place = await placeForTfl(bankHub);
+    expect(place.tflIds.sort()).toEqual(['940GZZDLBNK', '940GZZLUBNK']);
+    // HUBBAN looks like it names BAN (Banbury), which is 100 km away.
+    expect(place.crs).toEqual([]);
+    expect(place.name).toBe('Bank');
+  });
+
+  it('keeps the interchange if TfL finds nothing inside it', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 500 })));
+    const place = await placeForTfl(bankHub);
+    expect(place.tflIds).toEqual(['HUBBAN']);
+  });
+
+  it('uses an ordinary station as it is, without asking TfL', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const place = await placeForTfl(angel);
+    expect(place.tflIds).toEqual([angel.id]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('when some sources fail', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('names the source that failed', () => {
+    expect(partialMessage({ partial: true, failedSources: ['tfl'] })).toBe('Tube and DLR times couldn’t load.');
+    expect(partialMessage({ partial: true, failedSources: ['nr'] })).toBe('National Rail times couldn’t load.');
+    expect(partialMessage({ partial: true, failedSources: ['tfl', 'nr'] })).toBe('Some departures couldn’t load.');
+  });
+
+  it('leaves a failed home check to the home card', () => {
+    expect(partialMessage({ partial: true, failedSources: [] })).toBeUndefined();
+  });
+
+  it('still warns on a board saved before sources were recorded', () => {
+    expect(partialMessage({ partial: true })).toBe('Some departures couldn’t load.');
+    expect(partialMessage({ partial: false })).toBeUndefined();
+  });
+
+  it('records which board source failed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.includes('api.tfl.gov.uk') ? new Response(null, { status: 500 }) : new Response(JSON.stringify({ trainServices: [] })),
+      ),
+    );
+    const settings = { apiKey: 'k', homeCrs: '', homeName: '', apiBase: 'https://example.test', setupDone: true };
+    const place: Place = { key: 'nr:LST', name: 'Liverpool Street', lat: 0, lon: 0, crs: ['LST'], tflIds: ['940GZZLULVT'] };
+    const data = await loadPlace(place, settings);
+    expect(data.failedSources).toEqual(['tfl']);
+    expect(data.partial).toBe(true);
+  });
+});
+
+describe('station search', () => {
+  const city = { lat: 51.5155, lon: -0.0922 };
+  const bank: TflStop = { id: 'HUBBAN', name: 'Bank', lat: 51.513395, lon: -0.089095, modes: ['dlr', 'tube'] };
+  const embankment: TflStop = { id: '940GZZLUEMB', name: 'Embankment Underground Station', lat: 51.507058, lon: -0.122666, modes: ['tube'] };
+  const name = (p: ReturnType<typeof rankSearch>[number]) => (p.kind === 'nr' ? p.station.name : p.stop.name);
+
+  it('puts London stations ahead of better matches elsewhere in Britain', () => {
+    const names = rankSearch('bank', searchNr('bank'), [bank, embankment], city).map(name);
+    expect(names.slice(0, 2)).toEqual(['Bank', 'Embankment Underground Station']);
+    expect(names).toContain('Bank Hall');
+    expect(names).toHaveLength(8);
+  });
+
+  it('ranks by how well the name matches when it does not know where you are', () => {
+    const names = rankSearch('read', searchNr('read'), []).map(name);
+    expect(names[0]).toBe('Reading');
+  });
+
+  it('finds a station by its code', () => {
+    expect(rankSearch('lst', searchNr('lst'), [], city).map(name)[0]).toBe('London Liverpool Street');
+  });
+
+  it('drops a Tube stop that duplicates a rail station', () => {
+    const bondTube: TflStop = { id: '940GZZLUBND', name: 'Bond Street Underground Station', lat: 51.5142, lon: -0.1494, modes: ['tube'] };
+    const picks = rankSearch('bond street', searchNr('bond street'), [bondTube], city);
+    expect(picks.filter((p) => p.kind === 'tfl')).toHaveLength(0);
   });
 });

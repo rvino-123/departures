@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HomeCard, Loader, Row, SettingsSheet, Setup, StationSearch, type SearchPick } from './components';
+import { HomeCard, Icon, Loader, Row, SettingsSheet, Setup, StationSearch } from './components';
 import { getFix, useGestures, useNow, useOnVisible, usePlaceData, useTheme } from './hooks';
 import { buildBoard, homeSection } from './lib/board';
 import { decideLocation, REASON_TEXT, type FallbackReason } from './lib/locate';
 import { findNr, placeForNr, placeForTfl, placesNear } from './lib/stations';
 import { forgetRejectedKey } from './lib/nr';
 import { loadSettings, saveSettings } from './lib/storage';
-import { formatClock } from './lib/time';
-import type { Place, Settings } from './lib/types';
+import { partialMessage } from './lib/load';
+import { formatAge, formatClock } from './lib/time';
+import type { Place, SearchPick, Settings } from './lib/types';
 import './App.css';
 
 type View =
@@ -17,6 +18,17 @@ type View =
   | { kind: 'manual'; place: Place };
 
 const RELOCATE_AFTER_MS = 60_000;
+
+/**
+ * Tabs are narrow: "London " in front of a terminus name pushes out the part that tells them apart.
+ * Only stripped where the rest still names the station (not London Bridge, London Fields, London Road).
+ */
+function tabName(name: string): string {
+  const rest = name.replace(/^London /, '');
+  return rest !== name && !/^(Bridge|Fields|Road)\b/.test(rest) ? rest : name;
+}
+/** Four missed 30 s refreshes: past this the "Updated" line turns amber. */
+const OLD_DATA_MS = 2 * 60_000;
 
 export default function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
@@ -101,7 +113,7 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
   const pick = async (p: SearchPick) => {
     setShowSearch(false);
     const id = ++nav.current;
-    const chosen = p.kind === 'nr' ? await placeForNr(p.station) : placeForTfl(p.stop);
+    const chosen = p.kind === 'nr' ? await placeForNr(p.station) : await placeForTfl(p.stop);
     if (id !== nav.current) return;
     setTab(0);
     setView({ kind: 'manual', place: chosen });
@@ -111,9 +123,8 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
   const board = useMemo(() => (data ? buildBoard(data.departures, now) : []), [data, now]);
   const home = useMemo(() => {
     if (!place) return { kind: 'hidden' } as const;
-    // If the key was rejected or the home request failed, we can't honestly say "no trains".
-    const canAsk = hasKey && !data?.keyRejected && !data?.homeFailed;
-    return homeSection(place, { crs: settings.homeCrs, name: settings.homeName }, canAsk, data?.homeDeps ?? [], now);
+    const status = { hasKey, keyRejected: data?.keyRejected, homeFailed: data?.homeFailed };
+    return homeSection(place, { crs: settings.homeCrs, name: settings.homeName }, status, data?.homeDeps ?? [], now);
   }, [place, settings.homeCrs, settings.homeName, hasKey, data, now]);
   const showData = data && place && data.placeKey === place.key;
 
@@ -126,23 +137,20 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       <header className="top">
         <div className="title">
           <h1>{place?.name ?? (view.kind === 'locating' ? 'Finding your station…' : 'Departures')}</h1>
-          <p className="sub">
+          <p className={`sub${data && !loading && now - data.fetchedAt > OLD_DATA_MS ? ' old' : ''}`}>
             {loading && 'Updating… '}
-            {data && !loading && `Updated ${formatClock(data.fetchedAt)}`}
+            {data && !loading && `Updated ${formatAge(data.fetchedAt, now)}`}
           </p>
         </div>
         <div className="actions">
-          <button aria-label="Search stations" onClick={() => setShowSearch((s) => !s)}>
-            ⌕
+          <button aria-label="Search stations" aria-expanded={showSearch} onClick={() => setShowSearch((s) => !s)}>
+            <Icon name="search" />
           </button>
           <button aria-label="Refresh" onClick={refresh}>
-            ↻
-          </button>
-          <button aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} onClick={toggleTheme}>
-            {theme === 'dark' ? '☀' : '☾'}
+            <Icon name="refresh" />
           </button>
           <button aria-label="Settings" onClick={() => setShowSettings(true)}>
-            ⚙
+            <Icon name="settings" />
           </button>
         </div>
       </header>
@@ -151,7 +159,7 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
         <nav className="tabs">
           {places.map((p, i) => (
             <button key={p.key} className={i === tab ? 'on' : ''} onClick={() => setTab(i)}>
-              <span>{p.name}</span>
+              <span>{tabName(p.name)}</span>
               <small>{formatDistance(p.distance)}</small>
             </button>
           ))}
@@ -159,18 +167,21 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       )}
 
       {(showSearch || view.kind === 'fallback') && (
-        <StationSearch onPick={pick} autoFocus={showSearch} />
+        <StationSearch onPick={pick} autoFocus={showSearch} near={place} />
       )}
 
       {view.kind === 'fallback' && <p className="note">{REASON_TEXT[view.reason]}</p>}
       {view.kind === 'manual' && (
         <button className="note link" onClick={locate}>
-          ⦿ Use my location instead
+          <Icon name="locate" /> Use my location instead
         </button>
       )}
 
       {offline && data && (
-        <p className="banner offline">Offline · as of {formatClock(data.fetchedAt)}</p>
+        <p className="banner offline">
+          Offline · as of {formatClock(data.fetchedAt)}
+          {now - data.fetchedAt < 3600_000 && ` (${formatAge(data.fetchedAt, now)})`}
+        </p>
       )}
       {offline && !data && <p className="banner offline">Offline, and nothing saved for this station yet.</p>}
       {!hasKey && (
@@ -183,34 +194,35 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
           Your National Rail key was rejected. Check it in settings →
         </button>
       )}
-      {data?.partial && !offline && <p className="banner">Some departures couldn’t load.</p>}
+      {data && !offline && partialMessage(data) && <p className="banner">{partialMessage(data)}</p>}
 
-      <div className={offline ? 'stale' : ''}>
-        {showData && <HomeCard section={home} now={now} />}
+      {showData && <HomeCard section={home} now={now} onRetry={refresh} />}
 
-        {showData && (
-          <section>
-            {home.kind !== 'hidden' && <h2>All departures</h2>}
-            {board.length > 0 ? (
-              <ul className="board">
-                {board.map((d) => (
-                  <Row key={d.id} d={d} now={now} />
-                ))}
-              </ul>
-            ) : (
-              <p className="empty">
-                {!hasKey && place.tflIds.length === 0
-                  ? 'Add your National Rail key to see trains here.'
-                  : data.keyRejected || data.partial
-                    ? 'Couldn’t load departures for this station.'
-                    : 'No departures in the next 90 minutes.'}
-              </p>
-            )}
-          </section>
-        )}
-        {view.kind === 'locating' && <Loader message="Finding stations near you…" />}
-        {!showData && place && !offline && <Loader message="Checking train times…" />}
-      </div>
+      {showData && (
+        <section>
+          {home.kind !== 'hidden' && <h2>All departures</h2>}
+          {board.length > 0 ? (
+            <ul className="board">
+              {board.map((d) => (
+                <Row key={d.id} d={d} now={now} />
+              ))}
+            </ul>
+          ) : (
+            <p className="empty">
+              {!hasKey && place.tflIds.length === 0
+                ? 'Add your National Rail key to see trains here.'
+                : data.keyRejected || partialMessage(data)
+                  ? 'Couldn’t load departures for this station.'
+                  : hasKey && place.crs.length > 0
+                    ? 'No departures in the next 90 minutes.'
+                    : // Only TfL was asked, and it answers an unknown stop with an empty list too.
+                      'No live times from TfL for this stop right now.'}
+            </p>
+          )}
+        </section>
+      )}
+      {view.kind === 'locating' && <Loader message="Finding stations near you…" />}
+      {!showData && place && !offline && <Loader message="Checking train times…" />}
 
       <footer>
         Powered by TfL Open Data · National Rail Enquiries data via Rail Data Marketplace · Station list ©{' '}
@@ -223,6 +235,8 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       {showSettings && (
         <SettingsSheet
           settings={settings}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onClose={() => setShowSettings(false)}
           onSave={(s) => {
             onSettings(s);
