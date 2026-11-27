@@ -219,27 +219,36 @@ describe('the "To home" section', () => {
   const angelPlace: Place = { key: 'tfl:a', name: 'Angel', lat: 0, lon: 0, crs: [], tflIds: ['a'] };
   const homePlace: Place = { key: 'nr:RDG', name: 'Reading', lat: 0, lon: 0, crs: ['RDG'], tflIds: [] };
 
+  const ok = { hasKey: true };
+
   it('is hidden at the home station', () => {
-    expect(homeSection(homePlace, home, true, [dep({})], now)).toEqual({ kind: 'hidden' });
+    expect(homeSection(homePlace, home, ok, [dep({})], now)).toEqual({ kind: 'hidden' });
   });
 
   it('says there are no direct trains from a Tube-only station', () => {
-    expect(homeSection(angelPlace, home, true, [], now)).toEqual({ kind: 'none', homeName: 'Reading' });
+    expect(homeSection(angelPlace, home, ok, [], now)).toEqual({ kind: 'noRail', homeName: 'Reading' });
   });
 
   it('shows the next 4 trains within 3 hours', () => {
     const trains = Array.from({ length: 6 }, (_, i) => dep({ id: `h${i}`, time: at(12, 10 + i * 40) }));
-    const s = homeSection(lst, home, true, trains, now);
+    const s = homeSection(lst, home, ok, trains, now);
     expect(s.kind).toBe('trains');
     if (s.kind === 'trains') expect(s.trains.map((t) => t.id)).toEqual(['h0', 'h1', 'h2', 'h3']);
   });
 
   it('says none when nothing runs in the next 3 hours', () => {
-    expect(homeSection(lst, home, true, [dep({ time: at(15, 30) })], now).kind).toBe('none');
+    expect(homeSection(lst, home, ok, [dep({ time: at(15, 30) })], now).kind).toBe('none');
   });
 
   it('is hidden without a National Rail key', () => {
-    expect(homeSection(lst, home, false, [], now)).toEqual({ kind: 'hidden' });
+    expect(homeSection(lst, home, { hasKey: false }, [], now)).toEqual({ kind: 'hidden' });
+  });
+
+  it('says it could not check, rather than "none", when the request failed or the key was rejected', () => {
+    expect(homeSection(lst, home, { hasKey: true, homeFailed: true }, [], now))
+      .toEqual({ kind: 'unknown', homeName: 'Reading', reason: 'failed' });
+    expect(homeSection(lst, home, { hasKey: true, keyRejected: true, homeFailed: true }, [], now))
+      .toEqual({ kind: 'unknown', homeName: 'Reading', reason: 'rejected' });
   });
 });
 

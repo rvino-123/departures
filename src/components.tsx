@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { boardTime, type HomeSection } from './lib/board';
+import { boardTime, HOME_HOURS, type HomeSection } from './lib/board';
 import { textOn } from './lib/colors';
 import { DEFAULT_API_BASE } from './lib/nr';
 import { searchNr } from './lib/stations';
@@ -45,19 +45,39 @@ export function Loader({ message }: { message: string }) {
   );
 }
 
-export function HomeCard({ section, now }: { section: HomeSection; now: number }) {
+export function HomeCard({
+  section,
+  now,
+  onRetry,
+}: {
+  section: HomeSection;
+  now: number;
+  onRetry: () => void;
+}) {
   if (section.kind === 'hidden') return null;
-  if (section.kind === 'none') {
-    return <p className="home-none">No direct trains to {section.homeName} from here</p>;
-  }
   return (
     <section className="home">
       <h2>To {section.homeName}</h2>
-      <ul className="board">
-        {section.trains.map((d) => (
-          <Row key={d.id} d={d} now={now} />
-        ))}
-      </ul>
+      {section.kind === 'trains' && (
+        <ul className="board">
+          {section.trains.map((d) => (
+            <Row key={d.id} d={d} now={now} />
+          ))}
+        </ul>
+      )}
+      {section.kind === 'none' && <p className="home-note">None in the next {HOME_HOURS} hours.</p>}
+      {section.kind === 'noRail' && <p className="home-note">No direct trains from here.</p>}
+      {section.kind === 'unknown' && section.reason === 'rejected' && (
+        <p className="home-note">Couldn’t check: your National Rail key was rejected.</p>
+      )}
+      {section.kind === 'unknown' && section.reason === 'failed' && (
+        <p className="home-note">
+          Couldn’t check trains home.{' '}
+          <button className="link" onClick={onRetry}>
+            Try again
+          </button>
+        </p>
+      )}
     </section>
   );
 }

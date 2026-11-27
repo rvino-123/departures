@@ -111,9 +111,8 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
   const board = useMemo(() => (data ? buildBoard(data.departures, now) : []), [data, now]);
   const home = useMemo(() => {
     if (!place) return { kind: 'hidden' } as const;
-    // If the key was rejected or the home request failed, we can't honestly say "no trains".
-    const canAsk = hasKey && !data?.keyRejected && !data?.homeFailed;
-    return homeSection(place, { crs: settings.homeCrs, name: settings.homeName }, canAsk, data?.homeDeps ?? [], now);
+    const status = { hasKey, keyRejected: data?.keyRejected, homeFailed: data?.homeFailed };
+    return homeSection(place, { crs: settings.homeCrs, name: settings.homeName }, status, data?.homeDeps ?? [], now);
   }, [place, settings.homeCrs, settings.homeName, hasKey, data, now]);
   const showData = data && place && data.placeKey === place.key;
 
@@ -186,7 +185,7 @@ function Main({ settings, onSettings }: { settings: Settings; onSettings: (s: Se
       {data?.partial && !offline && <p className="banner">Some departures couldn’t load.</p>}
 
       <div className={offline ? 'stale' : ''}>
-        {showData && <HomeCard section={home} now={now} />}
+        {showData && <HomeCard section={home} now={now} onRetry={refresh} />}
 
         {showData && (
           <section>

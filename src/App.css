@@ -106,10 +106,16 @@ h2 {
   color: var(--accent);
   margin-top: 12px;
 }
-.home-none {
+.home-note {
   color: var(--muted);
   font-size: 15px;
-  margin: 8px 0;
+  margin: 6px 0 12px;
+}
+.home-note button.link {
+  font-size: 15px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .board {
