@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { boardTime, buildBoard, homeSection } from './board';
 import { distanceMetres, mergeIntoPlaces, nearestNrStations } from './geo';
+import { loadPlace, partialMessage } from './load';
 import { decideLocation } from './locate';
 import { placeForTfl } from './stations';
 import { fetchNrBoard, forgetRejectedKey, NrKeyError, parseNrBoard } from './nr';
 import { parseArrivals, parseNearby } from './tfl';
-import { clockToEpoch, formatCountdown } from './time';
+import { clockToEpoch, formatAge, formatCountdown } from './time';
 import type { Departure, NrStation, Place, TflStop } from './types';
 import { countRequest, dayKey, lastMinute, loadUsage, prune, summarise, type UsageDays } from './usage';
 
@@ -34,6 +35,12 @@ describe('time', () => {
     expect(clockToEpoch('14:30', at(14, 0))).toBe(at(14, 30));
     expect(clockToEpoch('On time', at(14, 0))).toBeUndefined();
   });
+  it('says how long ago the board was updated', () => {
+    expect(formatAge(at(8, 30), at(8, 30) + 40_000)).toBe('just now');
+    expect(formatAge(at(8, 30), at(8, 36))).toBe('6 min ago');
+    expect(formatAge(at(8, 30), at(10, 0))).toBe('at 08:30');
+  });
+
   it('formats countdowns', () => {
     expect(formatCountdown(at(12, 0), at(12, 0))).toBe('due');
     expect(formatCountdown(at(12, 7), at(12, 0))).toBe('7 min');
@@ -387,5 +394,38 @@ describe('picking a Tube/DLR stop from search', () => {
     const place = await placeForTfl(angel);
     expect(place.tflIds).toEqual([angel.id]);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('when some sources fail', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('names the source that failed', () => {
+    expect(partialMessage({ partial: true, failedSources: ['tfl'] })).toBe('Tube and DLR times couldn’t load.');
+    expect(partialMessage({ partial: true, failedSources: ['nr'] })).toBe('National Rail times couldn’t load.');
+    expect(partialMessage({ partial: true, failedSources: ['tfl', 'nr'] })).toBe('Some departures couldn’t load.');
+  });
+
+  it('leaves a failed home check to the home card', () => {
+    expect(partialMessage({ partial: true, failedSources: [] })).toBeUndefined();
+  });
+
+  it('still warns on a board saved before sources were recorded', () => {
+    expect(partialMessage({ partial: true })).toBe('Some departures couldn’t load.');
+    expect(partialMessage({ partial: false })).toBeUndefined();
+  });
+
+  it('records which board source failed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.includes('api.tfl.gov.uk') ? new Response(null, { status: 500 }) : new Response(JSON.stringify({ trainServices: [] })),
+      ),
+    );
+    const settings = { apiKey: 'k', homeCrs: '', homeName: '', apiBase: 'https://example.test', setupDone: true };
+    const place: Place = { key: 'nr:LST', name: 'Liverpool Street', lat: 0, lon: 0, crs: ['LST'], tflIds: ['940GZZLULVT'] };
+    const data = await loadPlace(place, settings);
+    expect(data.failedSources).toEqual(['tfl']);
+    expect(data.partial).toBe(true);
   });
 });

@@ -34,6 +34,10 @@
   font-size: 14px;
   min-height: 1.2em;
 }
+.sub.old {
+  color: var(--warn);
+  font-weight: 600;
+}
 .actions {
   display: flex;
   gap: 6px;
@@ -213,9 +217,6 @@ h2 {
 }
 .note {
   color: var(--muted);
-}
-.stale {
-  opacity: 0.55;
 }
 .empty {
   color: var(--muted);

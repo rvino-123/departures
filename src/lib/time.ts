@@ -26,3 +26,11 @@ export function formatCountdown(t: number, now: number): string {
   const h = Math.floor(mins / 60);
   return `${h}h ${mins % 60}m`;
 }
+
+/** How long ago something happened, for "Updated just now" / "Updated 3 min ago" / "Updated at 08:31". */
+export function formatAge(t: number, now: number): string {
+  const mins = Math.floor((now - t) / 60_000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  return `at ${formatClock(t)}`;
+}
